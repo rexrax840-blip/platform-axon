@@ -11,7 +11,7 @@ export function UsersProvider({ children }) {
   const host1offline = "http://localhost:3001/"
   const host2offline = "http://localhost:8000/"
   const host1online = "https://platform-axon-rust.vercel.app/"
-  const host2online = "https://platform-axon-live-server.onrender.com/"
+  const host2online = "https://platform-axon-realtime.onrender.com/"
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
