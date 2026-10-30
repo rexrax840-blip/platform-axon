@@ -16,7 +16,7 @@ import { useChatContext } from "../../app/AllContext/ChatContext"
 import { formatLocation } from "@/lib/admin-settings"
 
 export default function UsersManagement() {
-  const { users, fetchUsers, searchUsers, deleteUser, isLoadingUsers, totalUserPages, setActiveTab, usersPage, setUsersPage, usersSearchTerm, setUsersSearchTerm, refreshUsers, onlineCount, realtimeEnabled } = useDashboard()
+  const { users, fetchUsers, searchUsers, deleteUser, isLoadingUsers, totalUserPages, setActiveTab, usersPage, setUsersPage, usersSearchTerm, setUsersSearchTerm, refreshUsers, onlineCount, realtimeEnabled, onlineUsers } = useDashboard()
   const { setSelectedUser: setChatSelectedUser } = useChatContext()
   const [lightboxImage, setLightboxImage] = useState(null)
   const [lightboxName, setLightboxName] = useState("")
@@ -26,7 +26,9 @@ export default function UsersManagement() {
     setChatSelectedUser({ id: user._id, username: user.username })
     setActiveTab("live-chat")
   }
-  const { transactions, fetchTasksByUser } = useUsersContext()
+  const { transactions, fetchTasksByUser, getCompletedSetsSummary } = useUsersContext()
+  const [setsSummary, setSetsSummary] = useState({})
+  useEffect(() => { getCompletedSetsSummary().then((r) => { if (r.success) setSetsSummary(r.summary) }) }, [])
   const { toast } = useToast()
 
   const [showForm, setShowForm] = useState(false)
@@ -48,6 +50,26 @@ export default function UsersManagement() {
   const [showTransactionsModal, setShowTransactionsModal] = useState(false)
 
   const [showRewardModal, setShowRewardModal] = useState(false)
+  const [showOnlineList, setShowOnlineList] = useState(false)
+  const [locationRefreshMsg, setLocationRefreshMsg] = useState("")
+  const onlineIds = new Set((onlineUsers || []).map((u) => String(u._id)))
+  const formatLocationUpdated = (loc) => {
+    if (!loc?.updatedAt) return "Location not taken yet"
+    const d = new Date(loc.updatedAt)
+    return `Location last taken: ${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+  }
+  const handleRequestLocationRefresh = async (user) => {
+    setLocationRefreshMsg("")
+    try {
+      const res = await fetch(`https://platform-axon-rust.vercel.app/api/users/requestLocationRefresh/${user._id}`, { method: "POST" })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed")
+      setLocationRefreshMsg(`${user.username}: fresh location will be fetched on the next heartbeat / next time they come online.`)
+      toast({ title: "Location refresh requested", description: data.message || "Fresh location will be fetched next time the user is online." })
+    } catch (e) {
+      setLocationRefreshMsg(`Failed to request location refresh for ${user.username}.`)
+    }
+  }
   const [selectedUserForReward, setSelectedUserForReward] = useState(null)
 
   const [userTaskCounts, setUserTaskCounts] = useState({})
@@ -168,9 +190,46 @@ export default function UsersManagement() {
             Users Management
           </h2>
           <p className="text-slate-400 mt-2">Manage and control all user accounts</p>
-          <p className="text-sm mt-2 flex items-center gap-2">
-            {realtimeEnabled ? (<><span className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse" /><span className="text-green-400 font-semibold">{onlineCount} users online now</span></>) : (<span className="text-slate-500">Realtime OFF — online count paused (turn it on in Admin Settings)</span>)}
-          </p>
+          {realtimeEnabled ? (
+            <button onClick={() => setShowOnlineList((v) => !v)} className="text-sm mt-2 flex items-center gap-2 hover:underline" title="Click to show/hide the online users list below">
+              <span className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-green-400 font-semibold">{onlineCount} users online now</span>
+              <span className="text-slate-400">{showOnlineList ? "▲ Hide online list" : "▼ Show online list"}</span>
+            </button>
+          ) : (
+            <p className="text-sm mt-2 text-slate-500">Realtime OFF — online count paused (turn it on in Admin Settings)</p>
+          )}
+          {locationRefreshMsg && <p className="text-sm mt-2 text-cyan-300">{locationRefreshMsg}</p>}
+          {showOnlineList && realtimeEnabled && (
+            <Card className="mt-4 p-4 bg-slate-800/40 border border-slate-700/50 rounded-2xl space-y-3">
+              <h3 className="font-bold text-slate-100">Online Users ({onlineCount})</h3>
+              {onlineUsers.length === 0 ? (
+                <p className="text-sm text-slate-400">No users are online right now.</p>
+              ) : (
+                <div className="space-y-2">
+                  {onlineUsers.map((u) => (
+                    <div key={u._id} className="flex items-center gap-3 p-2 rounded-xl bg-slate-900/40">
+                      <div className="relative shrink-0">
+                        {(u.profile?.photoLink || u.profileimage) && u.profile?.photoLink !== "none" && u.profileimage !== "none" ? (
+                          <img src={u.profile?.photoLink || u.profileimage} alt={u.username} className="w-9 h-9 rounded-full object-cover border border-slate-600" />
+                        ) : (
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">{u.username?.charAt(0)}</div>
+                        )}
+                        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-slate-900" title="Online" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-semibold text-slate-200 truncate">{u.username}</div>
+                        <div className="text-xs text-slate-400 truncate">{u.currentPage || "—"} · {u.currentActivity || "Browsing"}</div>
+                      </div>
+                      <Button variant="ghost" size="sm" onClick={() => { setChatSelectedUser({ id: u._id, username: u.username }); setActiveTab("live-chat") }} className="text-cyan-400 hover:bg-cyan-900/20 rounded-lg" title="Message user in Live Chat">
+                        <LucideIcons.MessageCircle className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          )}
         </div>
 
         <Button
@@ -357,29 +416,41 @@ export default function UsersManagement() {
                               </div>
 
                               <div className="flex items-center gap-3">
+                                <div className="relative shrink-0">
                                 {(user.profile?.photoLink || user.profileimage) && user.profile?.photoLink !== "none" && user.profileimage !== "none" ? (
                                   <img
                                     src={user.profile?.photoLink || user.profileimage}
                                     alt={user.username}
-                                    className="w-10 h-10 shrink-0 rounded-full object-cover cursor-pointer border border-slate-600"
+                                    className="w-10 h-10 rounded-full object-cover cursor-pointer border border-slate-600"
                                     onClick={() => { setLightboxImage(user.profile?.photoLink || user.profileimage); setLightboxName(user.username) }}
                                     title="View profile picture in full screen"
                                   />
                                 ) : (
-                                  <div className="w-10 h-10 shrink-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
+                                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
                                     {user.username?.charAt(0)}
                                   </div>
                                 )}
+                                {onlineIds.has(String(user._id)) && (
+                                  <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full bg-green-500 border-2 border-slate-900" title="Online now" />
+                                )}
+                              </div>
                                 <div className="font-semibold text-slate-200 text-base truncate min-w-0">
                                   {user.username}
                                 </div>
                               </div>
-                              {formatLocation(user.location) && (
-                                <div className="text-sm text-slate-400">
-                                  Location: {formatLocation(user.location)}
-                                </div>
-                              )}
+                              <div className="text-sm text-slate-400">
+                                Location: {formatLocation(user.location) || "Not taken yet"}
+                              </div>
+                              <div className="text-xs text-slate-500 flex items-center gap-2 flex-wrap">
+                                <span>{formatLocationUpdated(user.location)}</span>
+                                <button onClick={() => handleRequestLocationRefresh(user)} className="text-cyan-400 hover:underline" title="Next time this user is online, a fresh location will be fetched">
+                                  Get latest location
+                                </button>
+                              </div>
 
+                              <div className="text-sm text-slate-400">
+                                Sets Completed: Today {setsSummary[String(user._id)]?.today || 0} • Total {setsSummary[String(user._id)]?.total || 0}
+                              </div>
                               <div className="text-sm text-slate-400">
                                 Referral: {user.ReferralName || "N/A"}
                               </div>

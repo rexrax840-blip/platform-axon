@@ -1091,9 +1091,30 @@ router.post("/presence/:id", async (req, res) => {
     const user = await User.findByIdAndUpdate(
       req.params.id,
       { $set: { lastSeenAt: new Date(), currentPage: page, currentActivity: activity } },
-      { new: true, select: "_id username lastSeenAt currentPage currentActivity" }
+      { new: true, select: "_id username lastSeenAt currentPage currentActivity location" }
     );
     if (!user) return res.status(404).json({ error: "User not found" });
+    // Auto location: while the user is online, check if a location is
+    // saved. If not, or if the admin requested a fresh location, fetch it
+    // from the user's current IP and save it. Attempts are throttled to
+    // once per 6 hours when a lookup keeps failing, so a bad IP does not
+    // hammer the lookup service on every 45s heartbeat.
+    try {
+      const loc = user.location || {};
+      const updatedAt = loc.updatedAt ? new Date(loc.updatedAt).getTime() : 0;
+      const staleAttempt = !updatedAt || Date.now() - updatedAt > 6 * 60 * 60 * 1000;
+      const needsLocation = Boolean(loc.refreshRequested) || ((!loc.city && !loc.country) && staleAttempt);
+      if (needsLocation) {
+        const reqForIp = { headers: req.headers, ip: req.ip };
+        const lookedUp = await lookupIpLocation(getClientIp(reqForIp));
+        if (lookedUp) {
+          await User.findByIdAndUpdate(req.params.id, { $set: { location: { ...lookedUp, refreshRequested: false } } });
+        } else {
+          // Record the attempt so we do not retry on every heartbeat.
+          await User.findByIdAndUpdate(req.params.id, { $set: { "location.updatedAt": new Date(), "location.refreshRequested": false } });
+        }
+      }
+    } catch (e) { /* location must never break presence */ }
     res.json({ ok: true, lastSeenAt: user.lastSeenAt });
   } catch (error) {
     console.error("Presence error:", error);
@@ -1101,14 +1122,29 @@ router.post("/presence/:id", async (req, res) => {
   }
 });
 
-// Online users, independent of the paginated users list, so the dashboard
-// sees every online user, not only the first 20. Online = seen in last 2 min.
-// Passwords, phone and wallet data are never returned here.
+// Admin: request a fresh location for a user. Nothing is fetched here;
+// the next presence heartbeat (within ~45s if the user is online, or
+// the next time they come online) fetches it from their current IP.
+router.post("/requestLocationRefresh/:id", async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { $set: { "location.refreshRequested": true } },
+      { new: true, select: "_id username location" }
+    );
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json({ ok: true, message: "Fresh location will be fetched on the next heartbeat / next time the user comes online." });
+  } catch (error) {
+    console.error("Request location refresh error:", error);
+    res.status(500).json({ error: "Failed to request location refresh" });
+  }
+});
+
 router.get("/online", async (req, res) => {
   try {
     const since = new Date(Date.now() - 2 * 60 * 1000);
     const onlineUsers = await User.find({ lastSeenAt: { $gte: since } })
-      .select("_id username currentVIPLevel profile lastSeenAt currentPage currentActivity")
+      .select("_id username currentVIPLevel profile lastSeenAt currentPage currentActivity location")
       .sort({ lastSeenAt: -1 })
       .lean();
     res.json({ onlineUsers, count: onlineUsers.length });

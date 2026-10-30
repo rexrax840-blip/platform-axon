@@ -82,11 +82,14 @@ export default function RealtimeEvents() {
                       <tr key={u._id} className="border-b border-slate-700/30">
                         <td className="px-4 py-3 align-middle">
                           <div className="flex items-center gap-3 min-w-0">
+                            <div className="relative shrink-0">
                             {(u.profile?.photoLink || u.profileimage) && u.profile?.photoLink !== "none" && u.profileimage !== "none" ? (
-                              <img src={u.profile?.photoLink || u.profileimage} alt={u.username} className="w-9 h-9 shrink-0 rounded-full object-cover border border-slate-600" />
+                              <img src={u.profile?.photoLink || u.profileimage} alt={u.username} className="w-9 h-9 rounded-full object-cover border border-slate-600" />
                             ) : (
-                              <div className="w-9 h-9 shrink-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">{u.username?.charAt(0)}</div>
+                              <div className="w-9 h-9 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">{u.username?.charAt(0)}</div>
                             )}
+                            <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-slate-900" title="Online" />
+                            </div>
                             <div className="min-w-0">
                               <div className="font-semibold text-slate-200 truncate">{u.username}</div>
                               {formatLocation(u.location) && <div className="text-xs text-slate-500 truncate">{formatLocation(u.location)}</div>}

@@ -35,6 +35,9 @@ const leadSchema = new mongoose.Schema(
       city: { type: String, default: "" },
       region: { type: String, default: "" },
       updatedAt: { type: Date, default: null },
+      // Admin-set: when true, the next presence heartbeat fetches a fresh
+      // location even if one is already saved, then clears this flag.
+      refreshRequested: { type: Boolean, default: false },
     },
 
     walletBalance: { type: Number, default: 25 },
