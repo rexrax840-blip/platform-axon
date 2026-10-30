@@ -13,6 +13,7 @@ import ProductsManagement from "@/components/dashboard/products-management"
 import WalletsManagement from "@/components/dashboard/wallets-management"
 import LiveChat from "@/components/dashboard/live-chat"
 import AdminSettings from "@/components/dashboard/admin-settings"
+import RealtimeEvents from "@/components/dashboard/realtime-events"
 import { fetchAdminSettings, DEFAULT_SETTINGS } from "@/lib/admin-settings"
 import { useChatContext } from "@/app/AllContext/ChatContext"
 
@@ -101,6 +102,7 @@ function DashboardContent() {
       badge: pendingUsersCount
     },
     { id: "settings", label: "Admin Settings", icon: "Settings", color: "from-amber-500 to-orange-500" },
+    { id: "realtime", label: "Realtime Events", icon: "Activity", color: "from-cyan-500 to-teal-500" },
 
   ]
 
@@ -221,6 +223,7 @@ function DashboardContent() {
             {activeTab === "wallets" && <WalletsManagement />}
             {activeTab === "live-chat" && <LiveChat />}
             {activeTab === "settings" && <AdminSettings />}
+            {activeTab === "realtime" && <RealtimeEvents />}
           </div>
         </main>
       </div>

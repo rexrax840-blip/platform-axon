@@ -72,6 +72,10 @@ const adminSettingsSchema = new mongoose.Schema(
       endLabel: { type: String, default: "09:30PM" },
     },
     depositAddresses: { type: [depositAddressSchema], default: [] },
+    // Realtime Events master switch. When false, presence heartbeats are
+    // ignored and the dashboard should not open the realtime SSE feed,
+    // so the admin can cut realtime-server consumption.
+    realtimeEvents: { enabled: { type: Boolean, default: true } },
     cloudinary: {
       cloudName: { type: String, default: "" },
       apiKey: { type: String, default: "" },

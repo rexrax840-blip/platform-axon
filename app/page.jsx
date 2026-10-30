@@ -69,9 +69,11 @@ export default function HomePage() {
 
   const [vipLevels, setVipLevels] = useState(defaultVipLevels)
   const [brandName, setBrandName] = useState(DEFAULT_SETTINGS.brandName)
+  const [workingHours, setWorkingHours] = useState(DEFAULT_SETTINGS.workingHours)
   useEffect(() => {
     fetchAdminSettings().then((s) => {
       if (s.brandName) setBrandName(s.brandName)
+      if (s.workingHours) setWorkingHours(s.workingHours)
       const configured = (s.vipLevels || []).filter((v) => v.visible !== false)
       if (configured.length > 0) {
         setVipLevels(configured.map((v) => ({
@@ -137,9 +139,14 @@ export default function HomePage() {
               {/* 👤 Profile */}
               <Link
                 href="/profile"
-                className="text-gray-300 hover:text-lime-400 transition-colors rounded-xl hover:bg-[#3d4e3f] p-2"
+                className="text-gray-300 hover:text-lime-400 transition-colors rounded-xl hover:bg-[#3d4e3f] p-1"
+                title="Profile"
               >
-                <LucideIcons.UserCircle className="h-6 w-6" />
+                {(storedUser.profile?.photoLink || (storedUser.profileimage && storedUser.profileimage !== "none" ? storedUser.profileimage : "")) ? (
+                  <img src={storedUser.profile?.photoLink || storedUser.profileimage} alt={storedUser.username} className="w-8 h-8 rounded-full object-cover border border-lime-500/50" />
+                ) : (
+                  <LucideIcons.UserCircle className="h-6 w-6" />
+                )}
               </Link>
 
               {/* 🔽 Notification Dropdown */}
@@ -397,7 +404,7 @@ export default function HomePage() {
                   <div className="w-16 h-16 bg-lime-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
                     <LucideIcons.Users className="h-8 w-8 text-[#2d3e2f]" />
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-2">08:00 AM to 08:00 PM EST</h3>
+                  <h3 className="text-xl font-bold text-white mb-2">{workingHours?.enabled ? `${workingHours.startLabel} to ${workingHours.endLabel} EST` : "Available 24 Hours"}</h3>
                   <p className="text-gray-300">Round-the-clock customer support team</p>
                 </div>
               </div>

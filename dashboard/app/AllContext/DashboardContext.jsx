@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useRef } from "react";
+import { fetchAdminSettings, DEFAULT_SETTINGS } from "@/lib/admin-settings";
 
 const DashboardContext = createContext();
 
@@ -15,6 +16,14 @@ export function DashboardProvider({ children }) {
   // Page/search also live here, so returning to the Users tab restores
   // exactly where the admin left off instead of resetting to page 1.
   const [usersPage, setUsersPage] = useState(1);
+  // Realtime Events: master switch from Admin Settings, online users
+  // (from the backend /online endpoint, not only the paginated list),
+  // and a live feed of realtime events for the Realtime Events tab.
+  const [realtimeEnabled, setRealtimeEnabled] = useState(true);
+  const [realtimeConnected, setRealtimeConnected] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState([]);
+  const [realtimeEvents, setRealtimeEvents] = useState([]);
+  const prevOnlineRef = useRef([]);
   const [usersSearchTerm, setUsersSearchTerm] = useState("");
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [products, setProducts] = useState([]);
@@ -27,13 +36,36 @@ export function DashboardProvider({ children }) {
   const host1online = "https://platform-axon-rust.vercel.app/"
   const host2online = "https://platform-axon-realtime.onrender.com/"
 
+  const pushRealtimeEvent = (type, description, username) => {
+    setRealtimeEvents((prev) => [{ time: new Date().toISOString(), type, description, username: username || "" }, ...prev].slice(0, 50));
+  };
+
+  // Load the Realtime Events switch from Admin Settings first.
   useEffect(() => {
+    fetchAdminSettings().then((s) => {
+      setRealtimeEnabled(s?.realtimeEvents?.enabled !== false);
+    }).catch(() => {});
+  }, []);
+
+  // Realtime SSE feed: only when Realtime Events is ON. This is the
+  // already-used SSE transport (EventSource), not a new websocket server.
+  // Turning it OFF closes the connection, cutting realtime consumption.
+  useEffect(() => {
+    if (!realtimeEnabled) {
+      setRealtimeConnected(false);
+      return;
+    }
     const eventSource = new EventSource(`${host2online}api/realtime-events`);
 
+    eventSource.onopen = () => setRealtimeConnected(true);
     eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);
 
       if (data.event !== "users_updated") return;
+      const u = data.payload?.fullDocument;
+      if (u?.username) {
+        pushRealtimeEvent("users_updated", data.payload?.operationType === "insert" ? "New user registered" : data.payload?.operationType === "delete" ? "User deleted" : "User updated", u.username);
+      }
 
       const change = data.payload;
       const updatedUser = change.fullDocument;
@@ -86,11 +118,41 @@ export function DashboardProvider({ children }) {
     };
 
     eventSource.onerror = () => {
+      setRealtimeConnected(false);
       eventSource.close();
     };
 
-    return () => eventSource.close();
-  }, []);
+    return () => { setRealtimeConnected(false); eventSource.close(); };
+  }, [realtimeEnabled]);
+
+  // Online users polling (30s), only when Realtime Events is ON.
+  // Uses the backend /online endpoint, so users beyond page 1 count too.
+  useEffect(() => {
+    if (!realtimeEnabled) {
+      setOnlineUsers([]);
+      prevOnlineRef.current = [];
+      return;
+    }
+    let cancelled = false;
+    const loadOnline = async () => {
+      try {
+        const res = await fetch(`${host1online}api/users/online`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const list = data.onlineUsers || [];
+        if (cancelled) return;
+        const prevIds = new Set(prevOnlineRef.current.map((u) => String(u._id)));
+        const newIds = new Set(list.map((u) => String(u._id)));
+        list.forEach((u) => { if (!prevIds.has(String(u._id))) pushRealtimeEvent("online", "Came online", u.username); });
+        prevOnlineRef.current.forEach((u) => { if (!newIds.has(String(u._id))) pushRealtimeEvent("offline", "Went offline", u.username); });
+        prevOnlineRef.current = list;
+        setOnlineUsers(list);
+      } catch (e) {}
+    };
+    loadOnline();
+    const interval = setInterval(loadOnline, 30000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [realtimeEnabled]);
 
   // Users Management Functions
   const addUser = (userData) => {
@@ -350,6 +412,15 @@ export function DashboardProvider({ children }) {
     fetchProducts,
     totalPages,
     isLoadingProducts,
+
+    // Realtime Events
+    realtimeEnabled,
+    setRealtimeEnabled,
+    realtimeConnected,
+    onlineUsers,
+    onlineCount: onlineUsers.length,
+    realtimeEvents,
+    pushRealtimeEvent,
 
     // Tab management
     activeTab,

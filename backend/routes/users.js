@@ -1075,6 +1075,49 @@ router.get("/getUserByUserId/:userId", async (req, res) => {
 // Cloudinary) or CLOUDINARY_* environment variables. The image is stored
 // in Cloudinary, and only its URL is saved on the user, so the picture is
 // visible from any browser/device and in the admin panel.
+
+// Realtime presence: heartbeat from the main app. Uses findByIdAndUpdate
+// (not save) so the VIP pre-save hook does not run on every heartbeat.
+// If Realtime Events is OFF in Admin Settings, heartbeats are ignored.
+router.post("/presence/:id", async (req, res) => {
+  try {
+    const AdminSettings = require("../models/AdminSettings");
+    const settings = await AdminSettings.findOne({ key: "global" }).lean().catch(() => null);
+    if (settings && settings.realtimeEvents && settings.realtimeEvents.enabled === false) {
+      return res.json({ ok: false, realtimeEnabled: false });
+    }
+    const page = String(req.body?.page || "").slice(0, 100);
+    const activity = String(req.body?.activity || page || "").slice(0, 100);
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { $set: { lastSeenAt: new Date(), currentPage: page, currentActivity: activity } },
+      { new: true, select: "_id username lastSeenAt currentPage currentActivity" }
+    );
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json({ ok: true, lastSeenAt: user.lastSeenAt });
+  } catch (error) {
+    console.error("Presence error:", error);
+    res.status(500).json({ error: "Failed to update presence" });
+  }
+});
+
+// Online users, independent of the paginated users list, so the dashboard
+// sees every online user, not only the first 20. Online = seen in last 2 min.
+// Passwords, phone and wallet data are never returned here.
+router.get("/online", async (req, res) => {
+  try {
+    const since = new Date(Date.now() - 2 * 60 * 1000);
+    const onlineUsers = await User.find({ lastSeenAt: { $gte: since } })
+      .select("_id username currentVIPLevel profile lastSeenAt currentPage currentActivity")
+      .sort({ lastSeenAt: -1 })
+      .lean();
+    res.json({ onlineUsers, count: onlineUsers.length });
+  } catch (error) {
+    console.error("Online users error:", error);
+    res.status(500).json({ error: "Failed to fetch online users" });
+  }
+});
+
 router.post("/uploadProfileImage/:id", async (req, res) => {
   try {
     const user = await User.findById(req.params.id);

@@ -16,7 +16,7 @@ import { useChatContext } from "../../app/AllContext/ChatContext"
 import { formatLocation } from "@/lib/admin-settings"
 
 export default function UsersManagement() {
-  const { users, fetchUsers, searchUsers, deleteUser, isLoadingUsers, totalUserPages, setActiveTab, usersPage, setUsersPage, usersSearchTerm, setUsersSearchTerm, refreshUsers } = useDashboard()
+  const { users, fetchUsers, searchUsers, deleteUser, isLoadingUsers, totalUserPages, setActiveTab, usersPage, setUsersPage, usersSearchTerm, setUsersSearchTerm, refreshUsers, onlineCount, realtimeEnabled } = useDashboard()
   const { setSelectedUser: setChatSelectedUser } = useChatContext()
   const [lightboxImage, setLightboxImage] = useState(null)
   const [lightboxName, setLightboxName] = useState("")
@@ -168,6 +168,9 @@ export default function UsersManagement() {
             Users Management
           </h2>
           <p className="text-slate-400 mt-2">Manage and control all user accounts</p>
+          <p className="text-sm mt-2 flex items-center gap-2">
+            {realtimeEnabled ? (<><span className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse" /><span className="text-green-400 font-semibold">{onlineCount} users online now</span></>) : (<span className="text-slate-500">Realtime OFF — online count paused (turn it on in Admin Settings)</span>)}
+          </p>
         </div>
 
         <Button

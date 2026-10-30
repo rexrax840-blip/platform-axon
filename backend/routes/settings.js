@@ -43,6 +43,9 @@ router.put("/", async (req, res) => {
       settings.workingHours = { ...settings.workingHours.toObject(), ...body.workingHours };
     }
     if (Array.isArray(body.depositAddresses)) settings.depositAddresses = body.depositAddresses;
+    if (body.realtimeEvents && typeof body.realtimeEvents === "object") {
+      settings.realtimeEvents = { ...settings.realtimeEvents?.toObject?.(), ...body.realtimeEvents };
+    }
     if (body.cloudinary && typeof body.cloudinary === "object") {
       if (typeof body.cloudinary.cloudName === "string") settings.cloudinary.cloudName = body.cloudinary.cloudName;
       if (typeof body.cloudinary.apiKey === "string") settings.cloudinary.apiKey = body.cloudinary.apiKey;

@@ -58,6 +58,12 @@ const leadSchema = new mongoose.Schema(
     ],
 
     allowWithdrawal: { type: Boolean, default: false },
+
+    // Realtime presence (updated by heartbeat, never by a user save).
+    // Online = lastSeenAt within the last 2 minutes.
+    lastSeenAt: { type: Date, default: null },
+    currentPage: { type: String, default: "" },
+    currentActivity: { type: String, default: "" },
   },
   { timestamps: true }
 );

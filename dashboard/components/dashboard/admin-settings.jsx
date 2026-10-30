@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import * as LucideIcons from "lucide-react"
 import { fetchAdminSettings, invalidateAdminSettingsCache, DEFAULT_SETTINGS } from "@/lib/admin-settings"
+import { useDashboard } from "@/app/AllContext/DashboardContext"
 
 const API = "https://platform-axon-rust.vercel.app/api/settings"
 
 export default function AdminSettings() {
+  const dashboardCtx = useDashboard()
   const [settings, setSettings] = useState(DEFAULT_SETTINGS)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState("")
@@ -39,6 +41,9 @@ export default function AdminSettings() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Save failed")
       setSettings(data.settings)
+      if (dashboardCtx?.setRealtimeEnabled && data.settings?.realtimeEvents) {
+        dashboardCtx.setRealtimeEnabled(data.settings.realtimeEvents.enabled !== false)
+      }
       setCloudSecret("")
       invalidateAdminSettingsCache()
       setMessage("Settings saved.")
@@ -51,6 +56,7 @@ export default function AdminSettings() {
 
   const update = (key, value) => setSettings((s) => ({ ...s, [key]: value }))
   const updateWorkingHours = (key, value) => setSettings((s) => ({ ...s, workingHours: { ...s.workingHours, [key]: value } }))
+  const updateRealtime = (key, value) => setSettings((s) => ({ ...s, realtimeEvents: { ...s.realtimeEvents, [key]: value } }))
   const updateCloud = (key, value) => setSettings((s) => ({ ...s, cloudinary: { ...s.cloudinary, [key]: value } }))
 
   const editChannel = (i, key, value) => setSettings((s) => ({ ...s, contactChannels: s.contactChannels.map((c, j) => (j === i ? { ...c, [key]: value } : c)) }))
@@ -118,6 +124,15 @@ export default function AdminSettings() {
           </div>
         ))}
         <Button onClick={addVip} className="bg-cyan-600 text-white rounded-lg">Add VIP Level</Button>
+      </Card>
+
+      <Card className="p-6 bg-slate-800/40 border border-slate-700/50 space-y-4">
+        <h3 className="text-xl font-bold text-slate-100">Realtime Events</h3>
+        <p className="text-sm text-slate-400">Controls the Realtime Events tab, the online-users count, and presence tracking. When OFF, the main app stops sending presence heartbeats and the dashboard closes its realtime SSE feed, so realtime-server consumption drops. Live support chat is separate and keeps working. Remember to click “Save All Settings” at the bottom after changing this.</p>
+        <div className="flex gap-2 items-center">
+          <Button onClick={() => updateRealtime("enabled", !settings.realtimeEvents?.enabled)} className="bg-slate-700 text-slate-100 rounded-lg">{settings.realtimeEvents?.enabled !== false ? "Turn OFF Realtime Events" : "Turn ON Realtime Events"}</Button>
+          <span className="text-sm text-slate-300">Current: {settings.realtimeEvents?.enabled !== false ? "ON — realtime feed active" : "OFF — no realtime feed, no presence tracking"}</span>
+        </div>
       </Card>
 
       <Card className="p-6 bg-slate-800/40 border border-slate-700/50 space-y-4">
