@@ -105,7 +105,7 @@ function DashboardContent() {
   ]
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div className="flex flex-col h-screen overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       {/* Header */}
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-slate-900/80 border-b border-slate-800/50 shadow-lg">
         <div className="flex items-center justify-between p-4 md:p-6">
@@ -165,9 +165,9 @@ function DashboardContent() {
       </header>
 
       {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Sidebar */}
-        <aside className="hidden md:flex flex-col w-64 bg-slate-900/60 backdrop-blur-xl border-r border-slate-800/50 shadow-lg overflow-y-auto">
+        <aside className="hidden md:flex flex-col w-64 shrink-0 self-stretch bg-slate-900/60 backdrop-blur-xl border-r border-slate-800/50 shadow-lg overflow-y-auto">
           <nav className="p-6 space-y-3">
             {sidebarItems.map((item) => {
               const IconComponent = LucideIcons[item.icon]
@@ -214,7 +214,7 @@ function DashboardContent() {
         </div>
 
         {/* Content Area */}
-        <main className="flex-1 overflow-auto pt-4 md:pt-0">
+        <main className="flex-1 min-w-0 overflow-y-auto pt-4 md:pt-0">
           <div className="md:p-8 p-4 md:mt-0 mt-16">
             {activeTab === "users" && <UsersManagement />}
             {activeTab === "products" && <ProductsManagement />}

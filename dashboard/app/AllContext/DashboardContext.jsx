@@ -1,12 +1,21 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useRef } from "react";
 
 const DashboardContext = createContext();
 
 export function DashboardProvider({ children }) {
   const [users, setUsers] = useState([]);
   const [totalUserPages, setTotalUserPages] = useState(1);
+  // Users list cache: lives in this provider, which stays mounted while
+  // tabs switch (only the UsersManagement component unmounts). A full
+  // page reload creates a new provider, so the cache is empty again and
+  // the list is fetched once. Keys: list:<page> and search:<query>:<page>.
+  const usersLoadedRef = useRef({});
+  // Page/search also live here, so returning to the Users tab restores
+  // exactly where the admin left off instead of resetting to page 1.
+  const [usersPage, setUsersPage] = useState(1);
+  const [usersSearchTerm, setUsersSearchTerm] = useState("");
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [products, setProducts] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
@@ -192,7 +201,11 @@ export function DashboardProvider({ children }) {
     }
   };
 
-  const fetchUsers = async (page = 1) => {
+  const fetchUsers = async (page = 1, options = {}) => {
+    // Cache hit: this page was already loaded in this page-load, and the
+    // list is still in context (live realtime updates keep it current).
+    // Skip the network call entirely — no spinner, no reload.
+    if (!options.force && usersLoadedRef.current[`list:${page}`]) return;
     try {
       setIsLoadingUsers(true);
 
@@ -211,6 +224,7 @@ export function DashboardProvider({ children }) {
       // Update state
       setUsers(result.users || []);
       setTotalUserPages(result.totalPages || 1);
+      usersLoadedRef.current[`list:${page}`] = true;
 
       setIsLoadingUsers(false);
     } catch (error) {
@@ -219,7 +233,8 @@ export function DashboardProvider({ children }) {
     }
   };
 
-  const searchUsers = async (query, page = 1) => {
+  const searchUsers = async (query, page = 1, options = {}) => {
+    if (!options.force && usersLoadedRef.current[`search:${query}:${page}`]) return;
     try {
       setIsLoadingUsers(true);
 
@@ -231,6 +246,7 @@ export function DashboardProvider({ children }) {
 
       setUsers(data.users);
       setTotalUserPages(data.totalPages);
+      usersLoadedRef.current[`search:${query}:${page}`] = true;
     } catch (error) {
       console.error("Search users error:", error);
     } finally {
@@ -314,6 +330,12 @@ export function DashboardProvider({ children }) {
     updateUser,
     deleteUser,
     fetchUsers,
+    usersPage,
+    setUsersPage,
+    usersSearchTerm,
+    setUsersSearchTerm,
+    // Force a fresh fetch (used by the manual Refresh button).
+    refreshUsers: (page, query) => query ? searchUsers(query, page, { force: true }) : fetchUsers(page, { force: true }),
     totalUserPages,
     isLoadingUsers,
     searchUsers,

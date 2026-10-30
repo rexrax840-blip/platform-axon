@@ -16,7 +16,7 @@ import { useChatContext } from "../../app/AllContext/ChatContext"
 import { formatLocation } from "@/lib/admin-settings"
 
 export default function UsersManagement() {
-  const { users, fetchUsers, searchUsers, deleteUser, isLoadingUsers, totalUserPages, setActiveTab } = useDashboard()
+  const { users, fetchUsers, searchUsers, deleteUser, isLoadingUsers, totalUserPages, setActiveTab, usersPage, setUsersPage, usersSearchTerm, setUsersSearchTerm, refreshUsers } = useDashboard()
   const { setSelectedUser: setChatSelectedUser } = useChatContext()
   const [lightboxImage, setLightboxImage] = useState(null)
   const [lightboxName, setLightboxName] = useState("")
@@ -31,8 +31,13 @@ export default function UsersManagement() {
 
   const [showForm, setShowForm] = useState(false)
   const [selectedUser, setSelectedUser] = useState(null)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [currentPage, setCurrentPage] = useState(1)
+  // Page/search live in context: returning to this tab restores them and
+  // the cached list is shown instantly, with no refetch. A full page
+  // reload clears the context, so the list is fetched once then.
+  const searchTerm = usersSearchTerm
+  const setSearchTerm = setUsersSearchTerm
+  const currentPage = usersPage
+  const setCurrentPage = setUsersPage
 
   const [showActionsModal, setShowActionsModal] = useState(false)
   const [selectedUserForActions, setSelectedUserForActions] = useState(null)
@@ -156,7 +161,7 @@ export default function UsersManagement() {
 
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
@@ -164,6 +169,16 @@ export default function UsersManagement() {
           </h2>
           <p className="text-slate-400 mt-2">Manage and control all user accounts</p>
         </div>
+
+        <Button
+          variant="outline"
+          onClick={() => refreshUsers(currentPage, searchTerm.trim())}
+          title="Refresh users list"
+          className="rounded-xl bg-slate-900/40 text-slate-300 border-slate-700 px-4 py-6"
+        >
+          <LucideIcons.RefreshCw className="h-5 w-5 mr-2" />
+          <span className="font-semibold">Refresh</span>
+        </Button>
 
         <Button
           onClick={handleOpenTransactions}
@@ -203,30 +218,37 @@ export default function UsersManagement() {
         ) : (
           <>
             <div className="w-full">
-              <div className="overflow-x-auto md:overflow-visible">
-                <table className="w-full text-sm text-slate-300">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[960px] table-fixed text-sm text-slate-300">
+                  <colgroup>
+                    <col className="w-[160px]" />
+                    <col className="w-[100px]" />
+                    <col className="w-[260px]" />
+                    <col className="w-[240px]" />
+                    <col className="w-[200px]" />
+                  </colgroup>
 
                   {/* ✅ Header (Hidden on Mobile) */}
                   <thead className="hidden md:table-header-group">
                     <tr className="bg-slate-800/60 border-b border-slate-700">
 
-                      <th className="px-4 py-4 text-center text-sm font-bold text-slate-200">
+                      <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
                         Actions
                       </th>
 
-                      <th className="px-6 py-4 text-left text-sm font-bold text-slate-200">
+                      <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
                         Tasks
                       </th>
 
-                      <th className="px-6 py-4 text-left text-sm font-bold text-slate-200">
+                      <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
                         User Details
                       </th>
 
-                      <th className="px-6 py-4 text-left text-sm font-bold text-slate-200">
+                      <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
                         Financial Overview
                       </th>
 
-                      <th className="px-6 py-4 text-left text-sm font-bold text-slate-200">
+                      <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
                         VIP Level
                       </th>
 
@@ -248,8 +270,8 @@ export default function UsersManagement() {
                         >
 
                           {/* ✅ Actions */}
-                          <td className="md:px-4 md:py-4">
-                            <div className="flex flex-wrap justify-start md:justify-center gap-2 mb-4 md:mb-0">
+                          <td className="md:px-4 md:py-4 align-middle">
+                            <div className="flex flex-nowrap justify-start md:justify-center gap-1 mb-4 md:mb-0">
 
                               <Button
                                 onClick={() => handleMessageUser(user)}
@@ -294,7 +316,7 @@ export default function UsersManagement() {
                           </td>
 
                           {/* ✅ Tasks */}
-                          <td className="md:px-6 md:py-4 mb-4 md:mb-0">
+                          <td className="md:px-4 md:py-4 mb-4 md:mb-0 align-middle">
                             <div className="flex items-center justify-between md:justify-start gap-3">
 
                               <div className="flex flex-col">
@@ -325,7 +347,7 @@ export default function UsersManagement() {
                           </td>
 
                           {/* ✅ User Info */}
-                          <td className="md:px-6 md:py-4 mb-4 md:mb-0">
+                          <td className="md:px-4 md:py-4 mb-4 md:mb-0 align-middle">
                             <div className="space-y-1">
                               <div className="text-xs text-slate-400 md:hidden">
                                 User Details
@@ -336,16 +358,16 @@ export default function UsersManagement() {
                                   <img
                                     src={user.profile?.photoLink || user.profileimage}
                                     alt={user.username}
-                                    className="w-10 h-10 rounded-full object-cover cursor-pointer border border-slate-600"
+                                    className="w-10 h-10 shrink-0 rounded-full object-cover cursor-pointer border border-slate-600"
                                     onClick={() => { setLightboxImage(user.profile?.photoLink || user.profileimage); setLightboxName(user.username) }}
                                     title="View profile picture in full screen"
                                   />
                                 ) : (
-                                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
+                                  <div className="w-10 h-10 shrink-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
                                     {user.username?.charAt(0)}
                                   </div>
                                 )}
-                                <div className="font-semibold text-slate-200 text-base">
+                                <div className="font-semibold text-slate-200 text-base truncate min-w-0">
                                   {user.username}
                                 </div>
                               </div>
@@ -359,38 +381,38 @@ export default function UsersManagement() {
                                 Referral: {user.ReferralName || "N/A"}
                               </div>
 
-                              <div className="text-sm text-slate-500">
+                              <div className="text-sm text-slate-500 truncate">
                                 Phone: {user.phone}
                               </div>
                             </div>
                           </td>
 
                           {/* ✅ Financial Info */}
-                          <td className="md:px-6 md:py-4 mb-4 md:mb-0">
+                          <td className="md:px-4 md:py-4 mb-4 md:mb-0 align-middle">
                             <div>
                               <div className="text-xs text-slate-400 md:hidden mb-2">
                                 Financial Overview
                               </div>
 
-                              <div className="grid grid-cols-2 gap-2 text-sm">
+                              <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm">
 
                                 <div className="text-slate-400">Wallet</div>
-                                <div className="text-green-400 font-semibold text-right">
+                                <div className="text-green-400 font-semibold text-right whitespace-nowrap">
                                   {formatCurrency(user.walletBalance)}
                                 </div>
 
                                 <div className="text-slate-400">Total</div>
-                                <div className="text-blue-400 font-semibold text-right">
+                                <div className="text-blue-400 font-semibold text-right whitespace-nowrap">
                                   {formatCurrency(user.totalBalance)}
                                 </div>
 
                                 <div className="text-slate-400">Commission</div>
-                                <div className="text-purple-400 font-semibold text-right">
+                                <div className="text-purple-400 font-semibold text-right whitespace-nowrap">
                                   {formatCurrency(user.commissionTotal)}
                                 </div>
 
                                 <div className="text-slate-400">Salary</div>
-                                <div className="text-indigo-400 font-semibold text-right">
+                                <div className="text-indigo-400 font-semibold text-right whitespace-nowrap">
                                   {formatCurrency(user.salary)}
                                 </div>
 
@@ -399,13 +421,13 @@ export default function UsersManagement() {
                           </td>
 
                           {/* ✅ VIP */}
-                          <td className="md:px-6 md:py-4">
+                          <td className="md:px-4 md:py-4 align-middle">
                             <div className="text-xs text-slate-400 md:hidden mb-1">
                               VIP Level
                             </div>
 
-                            <span className="px-3 py-1 bg-gradient-to-r from-purple-800/40 to-indigo-800/40 
-                                 text-purple-300 rounded-full text-xs font-semibold 
+                            <span className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-purple-800/40 to-indigo-800/40 
+                                 text-purple-300 rounded-full text-xs font-semibold whitespace-nowrap
                                  border border-purple-600/40">
                               {user.currentVIPLevel?.name
                                 ? `VIP ${user.currentVIPLevel.number} - ${user.currentVIPLevel.name}`

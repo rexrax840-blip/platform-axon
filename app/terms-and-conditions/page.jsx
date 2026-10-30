@@ -4,9 +4,13 @@ import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import * as LucideIcons from "lucide-react"
+import { useEffect, useState } from "react"
+import { fetchAdminSettings, DEFAULT_SETTINGS, workingHoursText } from "@/lib/admin-settings"
 
 export default function TermsAndConditionsPage() {
   const pathname = usePathname()
+  const [workingHours, setWorkingHours] = useState(DEFAULT_SETTINGS.workingHours)
+  useEffect(() => { fetchAdminSettings().then((s) => setWorkingHours(s.workingHours || DEFAULT_SETTINGS.workingHours)) }, [])
 
   const bottomNavLinks = [
     { name: "Home", icon: LucideIcons.Home, href: "/" },
@@ -269,6 +273,17 @@ export default function TermsAndConditionsPage() {
           {/* Enhanced Terms Sections */}
           <div className="space-y-6 sm:space-y-8">
             {sections.map((section) => {
+              // Business Hours follows Admin Settings: when the restriction
+              // is OFF, terms must say 24 hours, not 9:30-21:30.
+              if (section.title === "Business Hours") {
+                section = { ...section, content: workingHours?.enabled ? [
+                  { number: "9.1", text: `Platform business hours are from ${workingHours.startLabel} to ${workingHours.endLabel}.` },
+                  { number: "9.2", text: `The working hours of the online customer service center are from ${workingHours.startLabel} to ${workingHours.endLabel}.` },
+                ] : [
+                  { number: "9.1", text: "Platform is available 24 hours." },
+                  { number: "9.2", text: "The online customer service center is available 24 hours." },
+                ] }
+              }
               const Icon = section.icon
               return (
                 <Card

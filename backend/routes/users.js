@@ -1100,7 +1100,12 @@ router.post("/uploadProfileImage/:id", async (req, res) => {
     res.json({ message: "Profile picture updated", photoLink: result.secure_url, user });
   } catch (error) {
     console.error("Upload profile image error:", error);
-    res.status(500).json({ error: "Failed to upload profile picture" });
+    // Return the underlying reason (Cloudinary errors never contain the
+    // secret). Previously this was masked as a generic 500, which made a
+    // wrong Cloudinary key/secret impossible to diagnose from the browser.
+    const detail = error && error.message ? String(error.message) : "Failed to upload profile picture";
+    const status = error && error.http_code ? error.http_code : 500;
+    res.status(status >= 400 && status < 600 ? status : 500).json({ error: detail });
   }
 });
 

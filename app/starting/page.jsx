@@ -11,6 +11,7 @@ import { useUsersContext } from "../AllContext/UsersContext"
 import Optimization from "./Optimization/Index"
 import Bottom from "@/app/Common/Bottom/Bottom"
 import SupportChat from '@/app/Common/SupportChat/SupportChat'
+import { fetchAdminSettings, DEFAULT_SETTINGS, workingHoursText } from "@/lib/admin-settings"
 
 export default function StartingPage() {
   const router = useRouter()
@@ -22,6 +23,8 @@ export default function StartingPage() {
   const [profilePhotoLink, setProfilePhotoLink] = useState("")
   const [showResetDialog, setShowResetDialog] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
+  const [workingHours, setWorkingHours] = useState(DEFAULT_SETTINGS.workingHours)
+  useEffect(() => { fetchAdminSettings().then((s) => setWorkingHours(s.workingHours || DEFAULT_SETTINGS.workingHours)) }, [])
 
   const fileInputRef = useRef(null)
 
@@ -368,7 +371,7 @@ export default function StartingPage() {
                   </div>
                   <div>
                     <span className="font-semibold text-white">Online Support Hours</span>
-                    <p className="text-gray-300">09:30 - 21:30 Estern Time (Daily)</p>
+                    <p className="text-gray-300">{workingHoursText(workingHours)}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-4 bg-[#2d3e2f] rounded-2xl border border-[#a3d65c]/20">
