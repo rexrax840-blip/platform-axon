@@ -69,6 +69,9 @@ const Index = ({ user, setShowTaskSubmissionDialog, setTask, starting, setStarti
       return
     }
 
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("axon-activity", { detail: { activity: "Starting optimization" } }))
+    }
     setStarting(true)
 
     const totalTasks =

@@ -138,9 +138,14 @@ export default function StartingPage() {
               />
               <Link
                 href="/profile"
-                className="text-white hover:text-[#a3d65c] transition-colors rounded-xl hover:bg-[#3d4f3f] p-2"
+                className="text-white hover:text-[#a3d65c] transition-colors rounded-xl hover:bg-[#3d4f3f] p-1"
+                title="Profile"
               >
-                <LucideIcons.UserCircle className="h-6 w-6" />
+                {(profilePhotoLink || (user.profile?.photoLink && user.profile.photoLink !== "none" ? user.profile.photoLink : "") || (user.profileimage && user.profileimage !== "none" ? user.profileimage : "")) ? (
+                  <img src={profilePhotoLink || user.profile?.photoLink || user.profileimage} alt={user.username} className="w-8 h-8 rounded-full object-cover border border-[#a3d65c]/50" />
+                ) : (
+                  <LucideIcons.UserCircle className="h-6 w-6" />
+                )}
               </Link>
 
               {/* 🔽 Notification Dropdown */}
