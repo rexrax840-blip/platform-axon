@@ -15,6 +15,17 @@ export default function AdminSettings() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState("")
   const [cloudSecret, setCloudSecret] = useState("")
+  const [cloudTest, setCloudTest] = useState("")
+  const testCloudinary = async () => {
+    setCloudTest("Testing Cloudinary...")
+    try {
+      const res = await fetch("https://platform-axon-rust.vercel.app/api/settings/test-cloudinary", { method: "POST" })
+      const data = await res.json()
+      setCloudTest(data.ok ? "Cloudinary test passed." : `Cloudinary test failed: ${data.error || "Unknown error"}`)
+    } catch (e) {
+      setCloudTest(`Cloudinary test failed: ${e.message}`)
+    }
+  }
 
   useEffect(() => { fetchAdminSettings().then(setSettings) }, [])
 
@@ -111,10 +122,12 @@ export default function AdminSettings() {
 
       <Card className="p-6 bg-slate-800/40 border border-slate-700/50 space-y-4">
         <h3 className="text-xl font-bold text-slate-100">Working Hours</h3>
-        <p className="text-sm text-slate-400">Turn the restriction off to make the platform available 24 hours.</p>
+        <p className="text-sm text-slate-400">How to end the restriction: click the button below to turn Working Hours OFF, then click “Save All Settings” at the bottom of this page. When OFF, tasks can be started at any time, and every place in the app that showed a fixed time window will show 24 hours instead. When ON, tasks are only allowed between the Start and End times below.</p>
         <div className="flex gap-2 items-center">
-          <Button onClick={() => updateWorkingHours("enabled", !settings.workingHours?.enabled)} className="bg-slate-700 text-slate-100 rounded-lg">{settings.workingHours?.enabled ? "Working hours: ON" : "Working hours: OFF (24 hours)"}</Button>
+          <Button onClick={() => updateWorkingHours("enabled", !settings.workingHours?.enabled)} className="bg-slate-700 text-slate-100 rounded-lg">{settings.workingHours?.enabled ? "Turn OFF — make platform available 24 hours" : "Turn ON — restrict to working hours below"}</Button>
+          <span className="text-sm text-slate-300">Current: {settings.workingHours?.enabled ? "Restricted to working hours" : "Available 24 hours (no restriction)"}</span>
         </div>
+        {!settings.workingHours?.enabled && <p className="text-sm text-slate-400">The Start/End times below are ignored while Working Hours is OFF. They will apply again only if you turn it back ON and save.</p>}
         <div className="grid md:grid-cols-3 gap-3">
           <div><Label className="text-slate-300">Start label</Label><Input value={settings.workingHours?.startLabel || ""} onChange={(e) => updateWorkingHours("startLabel", e.target.value)} className="bg-slate-900/60 border-slate-700 text-slate-100" /></div>
           <div><Label className="text-slate-300">End label</Label><Input value={settings.workingHours?.endLabel || ""} onChange={(e) => updateWorkingHours("endLabel", e.target.value)} className="bg-slate-900/60 border-slate-700 text-slate-100" /></div>
@@ -131,6 +144,10 @@ export default function AdminSettings() {
           <div><Label className="text-slate-300">Cloud name</Label><Input value={settings.cloudinary?.cloudName || ""} onChange={(e) => updateCloud("cloudName", e.target.value)} className="bg-slate-900/60 border-slate-700 text-slate-100" /></div>
           <div><Label className="text-slate-300">API key</Label><Input value={settings.cloudinary?.apiKey || ""} onChange={(e) => updateCloud("apiKey", e.target.value)} className="bg-slate-900/60 border-slate-700 text-slate-100" /></div>
           <div><Label className="text-slate-300">API secret (new value only)</Label><Input type="password" value={cloudSecret} onChange={(e) => setCloudSecret(e.target.value)} placeholder={settings.cloudinary?.secretSet ? "Secret is set (hidden)" : "Enter API secret"} className="bg-slate-900/60 border-slate-700 text-slate-100" /></div>
+        </div>
+        <div className="flex gap-3 items-center">
+          <Button onClick={testCloudinary} className="bg-cyan-600 text-white rounded-lg">Test Cloudinary</Button>
+          {cloudTest && <p className="text-sm text-slate-200">{cloudTest}</p>}
         </div>
       </Card>
 

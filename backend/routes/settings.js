@@ -95,4 +95,27 @@ router.post("/admin-login", async (req, res) => {
   }
 });
 
+
+// Test the configured Cloudinary credentials without uploading a user
+// image. Uses cloudinary.api.ping(), which only checks authentication.
+// Returns { ok: true } or { ok: false, error: <Cloudinary message> }.
+// No credential is ever returned.
+router.post("/test-cloudinary", async (req, res) => {
+  try {
+    const settings = await getOrCreateSettings();
+    const cloudName = settings.cloudinary?.cloudName || process.env.CLOUDINARY_CLOUD_NAME || "";
+    const apiKey = settings.cloudinary?.apiKey || process.env.CLOUDINARY_API_KEY || "";
+    const apiSecret = settings.cloudinary?.apiSecret || process.env.CLOUDINARY_API_SECRET || "";
+    if (!cloudName || !apiKey || !apiSecret) {
+      return res.status(400).json({ ok: false, error: "Cloudinary is not configured in Admin Settings." });
+    }
+    const cloudinary = require("cloudinary").v2;
+    cloudinary.config({ cloud_name: cloudName, api_key: apiKey, api_secret: apiSecret, secure: true });
+    const result = await cloudinary.api.ping();
+    res.json({ ok: true, status: result?.status || "ok" });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error && error.message ? String(error.message) : "Cloudinary test failed." });
+  }
+});
+
 module.exports = router;
