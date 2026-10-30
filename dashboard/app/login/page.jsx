@@ -188,18 +188,6 @@ export default function LoginPage() {
             </form>
           </Card>
 
-          <div className="text-center mt-6">
-            <p className="text-slate-600">
-              Don't have an account?{" "}
-              <Link href="/signup" className="text-blue-600 hover:text-blue-700 font-bold">
-                Sign Up
-              </Link>
-              <span className="text-slate-400 mx-2">|</span>
-              <Link href="/admin-password" className="text-blue-600 hover:text-blue-700 font-bold">
-                Set Admin Password
-              </Link>
-            </p>
-          </div>
         </div>
       </main>
     </div>
