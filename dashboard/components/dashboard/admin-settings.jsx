@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -69,7 +68,7 @@ export default function AdminSettings() {
           <Label className="text-slate-300">Brand name (used throughout the system)</Label>
           <Input value={settings.brandName || ""} onChange={(e) => update("brandName", e.target.value)} className="bg-slate-900/60 border-slate-700 text-slate-100" />
         </div>
-        <p className="text-sm text-slate-400">Admin panel login: set a username and password on the secure <Link href="/admin-password" className="text-cyan-400 underline">/admin-password</Link> page. After that, the panel requires that username and password.</p>
+        <p className="text-sm text-slate-400">Admin panel login: set a username and password by opening the /admin-password page directly (it is intentionally not linked). After that, the panel requires that username and password.</p>
       </Card>
 
       <Card className="p-6 bg-slate-800/40 border border-slate-700/50 space-y-4">
