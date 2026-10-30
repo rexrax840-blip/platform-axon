@@ -8,6 +8,38 @@ const WalletAddress = require("../models/WalletAddress");
 const TransactionHistory = require("../models/TransactionHistory");
 const DepositWallet = require("../models/DepositWallet");
 
+// --- IP location (Req 9) -------------------------------------------------
+// Best-effort, non-blocking: a failed lookup never blocks signup/login.
+function getClientIp(req) {
+  const forwarded = req.headers["x-forwarded-for"];
+  if (forwarded) return String(forwarded).split(",")[0].trim();
+  return req.ip || "";
+}
+async function lookupIpLocation(ip) {
+  if (!ip || ip === "::1" || ip.startsWith("127.") || ip.startsWith("10.") || ip.startsWith("192.168.")) return null;
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3000);
+    const res = await fetch(`http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,country,city,regionName,query`, { signal: controller.signal });
+    clearTimeout(timer);
+    const data = await res.json();
+    if (data && data.status === "success") {
+      return { ip: data.query || ip, country: data.country || "", city: data.city || "", region: data.regionName || "", updatedAt: new Date() };
+    }
+  } catch (e) { /* ignore */ }
+  return null;
+}
+async function attachIpLocation(req, user) {
+  try {
+    const ip = getClientIp(req);
+    if (!ip) return;
+    const location = await lookupIpLocation(ip);
+    if (location) { user.location = location; await user.save(); }
+    else if (!user.location?.ip) { user.location = { ip, country: "", city: "", region: "", updatedAt: new Date() }; await user.save(); }
+  } catch (e) { /* never block auth on location */ }
+}
+
+
 // Route to create a new user
 router.post("/createUser", async (req, res) => {
   try {
@@ -71,6 +103,7 @@ router.post("/createUser", async (req, res) => {
 
     await transaction.save();
 
+    attachIpLocation(req, newUser).catch(() => {});
     res.status(201).json({ message: "User created successfully", user: newUser });
   } catch (error) {
     console.error("Create user error:", error);
@@ -95,6 +128,7 @@ router.post("/login", async (req, res) => {
     }
 
     // 3️⃣ If credentials are valid, return user data
+    attachIpLocation(req, user).catch(() => {});
     res.status(200).json({
       message: "Login successful",
       user
@@ -163,7 +197,7 @@ router.get("/users", async (req, res) => {
 router.get("/search", async (req, res) => {
   try {
     const { query, page = 1 } = req.query;
-    const pageSize = 10;
+    const pageSize = 20; // Req 1: 20 accounts per page, same as the main users list
 
     const mongoQuery = {
       $or: [
@@ -248,6 +282,8 @@ router.put("/updateUser/:id", async (req, res) => {
       "notifications",
       "todayProfit",
       "creditScore",
+      "profile",
+      "location",
     ];
 
     allowedFields.forEach((field) => {
@@ -1030,6 +1066,41 @@ router.get("/getUserByUserId/:userId", async (req, res) => {
   } catch (error) {
     console.error("Get user by userId error:", error);
     res.status(500).json({ error: "Server error. Please try again later." });
+  }
+});
+
+
+// Upload a profile picture to Cloudinary (Req 8).
+// Credentials come from admin settings (dashboard > Admin Settings >
+// Cloudinary) or CLOUDINARY_* environment variables. The image is stored
+// in Cloudinary, and only its URL is saved on the user, so the picture is
+// visible from any browser/device and in the admin panel.
+router.post("/uploadProfileImage/:id", async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    const { image } = req.body || {};
+    if (!image) return res.status(400).json({ error: "No image provided" });
+
+    const AdminSettings = require("../models/AdminSettings");
+    const settings = await AdminSettings.findOne({ key: "global" }).lean().catch(() => null);
+    const cloudName = settings?.cloudinary?.cloudName || process.env.CLOUDINARY_CLOUD_NAME || "";
+    const apiKey = settings?.cloudinary?.apiKey || process.env.CLOUDINARY_API_KEY || "";
+    const apiSecret = settings?.cloudinary?.apiSecret || process.env.CLOUDINARY_API_SECRET || "";
+    if (!cloudName || !apiKey || !apiSecret) {
+      return res.status(400).json({ error: "Cloudinary is not configured. Ask an admin to add Cloudinary credentials in Admin Settings." });
+    }
+    const cloudinary = require("cloudinary").v2;
+    cloudinary.config({ cloud_name: cloudName, api_key: apiKey, api_secret: apiSecret, secure: true });
+    const result = await cloudinary.uploader.upload(image, { folder: "platform-axon/profile-pictures", resource_type: "image" });
+    user.profile = user.profile || {};
+    user.profile.photoLink = result.secure_url;
+    user.profileimage = result.secure_url;
+    await user.save();
+    res.json({ message: "Profile picture updated", photoLink: result.secure_url, user });
+  } catch (error) {
+    console.error("Upload profile image error:", error);
+    res.status(500).json({ error: "Failed to upload profile picture" });
   }
 });
 

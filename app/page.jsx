@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation"
 import Bottom from "@/app/Common/Bottom/Bottom"
 import CS from "@/app/Common/CustomerService/CS"
 import SupportChat from '@/app/Common/SupportChat/SupportChat'
+import { fetchAdminSettings, DEFAULT_SETTINGS } from "@/lib/admin-settings"
 
 export default function HomePage() {
   const [showNotifications, setShowNotifications] = useState(false)
@@ -35,7 +36,7 @@ export default function HomePage() {
     { name: "About", iconName: "Info", href: "/about", color: "from-lime-500 to-lime-600" },
   ]
 
-  const vipLevels = [
+  const defaultVipLevels = [
     {
       level: "VIP1",
       amount: "1000.00 USD",
@@ -66,6 +67,24 @@ export default function HomePage() {
     },
   ]
 
+  const [vipLevels, setVipLevels] = useState(defaultVipLevels)
+  const [brandName, setBrandName] = useState(DEFAULT_SETTINGS.brandName)
+  useEffect(() => {
+    fetchAdminSettings().then((s) => {
+      if (s.brandName) setBrandName(s.brandName)
+      const configured = (s.vipLevels || []).filter((v) => v.visible !== false)
+      if (configured.length > 0) {
+        setVipLevels(configured.map((v) => ({
+          level: v.level,
+          amount: v.amount || `${Number(v.depositRequired || 0).toLocaleString()}.00 USD`,
+          iconName: v.iconName || "Star",
+          color: "from-lime-500 to-lime-600",
+          bgColor: "bg-gradient-to-br from-lime-900/20 to-lime-800/20",
+        })))
+      }
+    })
+  }, [])
+
   if (!storedUser) return null
 
   return (
@@ -79,7 +98,7 @@ export default function HomePage() {
               <div className="w-10 h-10 rounded-xl bg-lime-500 flex items-center justify-center shadow-lg">
                 <LucideIcons.Zap className="h-6 w-6 text-[#2d3e2f]" />
               </div>
-              <h1 className="text-2xl font-bold text-white tracking-wide">Axon</h1>
+              <h1 className="text-2xl font-bold text-white tracking-wide">{brandName}</h1>
             </Link>
 
             <div className="flex items-center gap-3 relative">
