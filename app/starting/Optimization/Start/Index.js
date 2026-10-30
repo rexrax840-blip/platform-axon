@@ -17,6 +17,14 @@ const Index = ({ user, setShowTaskSubmissionDialog, setTask, starting, setStarti
   const [showCSModal, setShowCSModal] = useState(false)
   const [csMessage, setCSMessage] = useState("")
   const [workingHours, setWorkingHours] = useState(DEFAULT_SETTINGS.workingHours)
+  const [completedSets, setCompletedSets] = useState({ today: 0, total: 0 })
+  useEffect(() => {
+    if (!user?._id) return
+    fetch(`https://platform-axon-rust.vercel.app/api/combo/completed-sets/${user._id}`)
+      .then((r) => r.json())
+      .then((d) => { if (d.success) setCompletedSets({ today: d.today || 0, total: d.total || 0 }) })
+      .catch(() => {})
+  }, [user?._id, tasksState])
   useEffect(() => { fetchAdminSettings().then((s) => setWorkingHours(s.workingHours || DEFAULT_SETTINGS.workingHours)) }, [])
 
   const fetchTasksAndSetState = async () => {
@@ -182,6 +190,10 @@ const Index = ({ user, setShowTaskSubmissionDialog, setTask, starting, setStarti
                   className="h-full bg-gradient-to-r from-[#a3d65c] to-[#8bc34a] rounded-full transition-all duration-500"
                   style={{ width: `${(tasksState / totalTasks) * 100}%` }}
                 ></div>
+              </div>
+              <div className="mt-4 flex items-center gap-6 text-sm">
+                <span className="text-gray-300">Sets Completed Today: <span className="font-bold text-[#a3d65c]">{completedSets.today}</span></span>
+                <span className="text-gray-300">Total Sets Completed: <span className="font-bold text-[#a3d65c]">{completedSets.total}</span></span>
               </div>
             </div>
 
