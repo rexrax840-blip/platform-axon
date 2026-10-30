@@ -10,9 +10,20 @@ import { useChatContext } from "@/app/AllContext/ChatContext"
 import { optimizeImage, validateImageFile, getBase64Size } from "@/lib/image-optimizer"
 
 export default function LiveChat() {
-    const { messages, sendMessage, fetchChatHistory, users, killChat, sendTypingStatus, typingStatus, markMessagesAsRead } = useChatContext()
+    const { messages, sendMessage, fetchChatHistory, users, setUsers, killChat, sendTypingStatus, typingStatus, markMessagesAsRead, selectedUser: contextSelectedUser, setSelectedUser: setContextSelectedUser } = useChatContext()
 
+    // Req 2: a user opened from Users Management arrives here via
+    // ChatContext, so admin can send the first message to a user who
+    // has never chatted before.
     const [selectedUser, setSelectedUser] = useState(null)
+    useEffect(() => {
+      if (contextSelectedUser) {
+        setSelectedUser(contextSelectedUser)
+        if (!users.some((u) => u.id === contextSelectedUser.id)) {
+          setUsers((prev) => [{ id: contextSelectedUser.id, username: contextSelectedUser.username, lastMessage: "", timestamp: Date.now(), pendingMessages: 0 }, ...prev])
+        }
+      }
+    }, [contextSelectedUser])
     const [messageText, setMessageText] = useState("")
     const [replyingTo, setReplyingTo] = useState(null)
     const [isOptimizing, setIsOptimizing] = useState(false)
@@ -240,7 +251,7 @@ export default function LiveChat() {
                                     ? "bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border-2 border-cyan-500/50"
                                     : "bg-slate-800/40 hover:bg-slate-800/60 border-2 border-transparent"
                                     }`}
-                                onClick={() => setSelectedUser(user)}
+                                onClick={() => { setSelectedUser(user); setContextSelectedUser(user) }}
                             >
                                 <div className="flex items-start gap-3">
                                     {/* Avatar */}

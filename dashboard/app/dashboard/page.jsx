@@ -12,12 +12,24 @@ import UsersManagement from "@/components/dashboard/users-management"
 import ProductsManagement from "@/components/dashboard/products-management"
 import WalletsManagement from "@/components/dashboard/wallets-management"
 import LiveChat from "@/components/dashboard/live-chat"
+import AdminSettings from "@/components/dashboard/admin-settings"
+import { fetchAdminSettings, DEFAULT_SETTINGS } from "@/lib/admin-settings"
 import { useChatContext } from "@/app/AllContext/ChatContext"
 
 function DashboardContent() {
   const { activeTab, setActiveTab } = useDashboard()
   const [showLogout, setShowLogout] = useState(false)
+  const [brandName, setBrandName] = useState(DEFAULT_SETTINGS.brandName)
   const router = useRouter()
+  useEffect(() => {
+    fetchAdminSettings().then((s) => {
+      if (s.brandName) setBrandName(s.brandName)
+      // Req 10: once an admin password is set, the panel requires it.
+      if (s.admin?.hasPassword && typeof window !== "undefined" && localStorage.getItem("admin-auth") !== "1") {
+        router.push("/login")
+      }
+    })
+  }, [router])
   // Count of users with pending messages (real-time)
   const [pendingUsersCount, setPendingUsersCount] = useState(0);
 
@@ -71,6 +83,7 @@ function DashboardContent() {
 
   const handleLogout = () => {
     localStorage.removeItem("user")
+    localStorage.removeItem("admin-auth")
     router.push("/login")
   }
 
@@ -87,6 +100,7 @@ function DashboardContent() {
       color: "from-cyan-500 to-blue-500",
       badge: pendingUsersCount
     },
+    { id: "settings", label: "Admin Settings", icon: "Settings", color: "from-amber-500 to-orange-500" },
 
   ]
 
@@ -100,7 +114,7 @@ function DashboardContent() {
               <LucideIcons.LayoutDashboard className="h-6 w-6 text-white" />
             </div>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent tracking-wide">
-              Admin Dashboard
+              {brandName} Admin Dashboard
             </h1>
           </Link>
 
@@ -206,6 +220,7 @@ function DashboardContent() {
             {activeTab === "products" && <ProductsManagement />}
             {activeTab === "wallets" && <WalletsManagement />}
             {activeTab === "live-chat" && <LiveChat />}
+            {activeTab === "settings" && <AdminSettings />}
           </div>
         </main>
       </div>

@@ -53,25 +53,32 @@ export default function StartingPage() {
     "💎 Don't miss out on our special VIP offers!",
   ]
 
+  // Profile picture via Cloudinary (Req 8), same as the profile page:
+  // upload through the backend and save only the Cloudinary URL.
   const handleProfileImageUpload = (e) => {
     const file = e.target.files?.[0]
     if (!file) return
-
     const reader = new FileReader()
-    reader.onloadend = () => {
-      const base64 = reader.result
-
+    reader.onloadend = async () => {
       const stored = localStorage.getItem("user")
       if (!stored) return
-
       const parsed = JSON.parse(stored)
-      parsed.profile = parsed.profile || {}
-      parsed.profile.photoLink = base64
-
-      localStorage.setItem("user", JSON.stringify(parsed))
-      setProfilePhotoLink(base64)
+      try {
+        const response = await fetch("https://platform-axon-rust.vercel.app/api/users/uploadProfileImage/" + parsed._id, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: reader.result }),
+        })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.error || "Upload failed")
+        parsed.profile = parsed.profile || {}
+        parsed.profile.photoLink = result.photoLink
+        localStorage.setItem("user", JSON.stringify(parsed))
+        setProfilePhotoLink(result.photoLink)
+      } catch (error) {
+        alert(error.message || "Failed to upload profile picture. Ask an admin to configure Cloudinary in Admin Settings.")
+      }
     }
-
     reader.readAsDataURL(file)
   }
 

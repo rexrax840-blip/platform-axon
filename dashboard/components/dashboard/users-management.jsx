@@ -12,9 +12,20 @@ import TransactionsListModal from "./transactions-list-modal"
 import RandomRewardModal from "./random-reward-modal"
 import { useToast } from "@/hooks/use-toast"
 import { useUsersContext } from "../../app/AllContext/UsersContext"
+import { useChatContext } from "../../app/AllContext/ChatContext"
+import { formatLocation } from "@/lib/admin-settings"
 
 export default function UsersManagement() {
-  const { users, fetchUsers, searchUsers, deleteUser, isLoadingUsers, totalUserPages } = useDashboard()
+  const { users, fetchUsers, searchUsers, deleteUser, isLoadingUsers, totalUserPages, setActiveTab } = useDashboard()
+  const { setSelectedUser: setChatSelectedUser } = useChatContext()
+  const [lightboxImage, setLightboxImage] = useState(null)
+  const [lightboxName, setLightboxName] = useState("")
+
+  // Req 2: open this user in Live Chat so admin can send the first message.
+  const handleMessageUser = (user) => {
+    setChatSelectedUser({ id: user._id, username: user.username })
+    setActiveTab("live-chat")
+  }
   const { transactions, fetchTasksByUser } = useUsersContext()
   const { toast } = useToast()
 
@@ -40,7 +51,9 @@ export default function UsersManagement() {
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
       if (searchTerm.trim() === "") {
-        // fetchUsers(currentPage)
+        // Req 1: load the latest accounts by default, 20 per page
+        // (backend /users sorts by createdAt desc, limit 20).
+        fetchUsers(currentPage)
       } else {
         searchUsers(searchTerm, currentPage)
       }
@@ -239,6 +252,16 @@ export default function UsersManagement() {
                             <div className="flex flex-wrap justify-start md:justify-center gap-2 mb-4 md:mb-0">
 
                               <Button
+                                onClick={() => handleMessageUser(user)}
+                                variant="ghost"
+                                size="icon"
+                                className="text-cyan-400 hover:bg-cyan-900/20 hover:text-cyan-300 rounded-lg"
+                                title="Message user in Live Chat"
+                              >
+                                <LucideIcons.MessageCircle className="h-4 w-4" />
+                              </Button>
+
+                              <Button
                                 onClick={() => handleOpenReward(user)}
                                 variant="ghost"
                                 size="icon"
@@ -308,9 +331,29 @@ export default function UsersManagement() {
                                 User Details
                               </div>
 
-                              <div className="font-semibold text-slate-200 text-base">
-                                {user.username}
+                              <div className="flex items-center gap-3">
+                                {(user.profile?.photoLink || user.profileimage) && user.profile?.photoLink !== "none" && user.profileimage !== "none" ? (
+                                  <img
+                                    src={user.profile?.photoLink || user.profileimage}
+                                    alt={user.username}
+                                    className="w-10 h-10 rounded-full object-cover cursor-pointer border border-slate-600"
+                                    onClick={() => { setLightboxImage(user.profile?.photoLink || user.profileimage); setLightboxName(user.username) }}
+                                    title="View profile picture in full screen"
+                                  />
+                                ) : (
+                                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
+                                    {user.username?.charAt(0)}
+                                  </div>
+                                )}
+                                <div className="font-semibold text-slate-200 text-base">
+                                  {user.username}
+                                </div>
                               </div>
+                              {formatLocation(user.location) && (
+                                <div className="text-sm text-slate-400">
+                                  Location: {formatLocation(user.location)}
+                                </div>
+                              )}
 
                               <div className="text-sm text-slate-400">
                                 Referral: {user.ReferralName || "N/A"}
@@ -413,6 +456,15 @@ export default function UsersManagement() {
         )}
       </div>
 
+      {lightboxImage && (
+        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" onClick={() => setLightboxImage(null)}>
+          <div className="relative max-w-4xl max-h-[90vh] w-full flex flex-col items-center gap-3" onClick={(e) => e.stopPropagation()}>
+            <img src={lightboxImage} alt={lightboxName} className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl" />
+            <p className="text-white text-sm">{lightboxName}</p>
+            <Button onClick={() => setLightboxImage(null)} className="bg-slate-700 text-white rounded-lg">Close</Button>
+          </div>
+        </div>
+      )}
       {showActionsModal && <UserActionsModal user={selectedUserForActions} onClose={handleCloseActionsModal} />}
       {showTasksModal && (
         <UserTasksModal
