@@ -146,13 +146,19 @@ router.get("/users", async (req, res) => {
     const limit = 20;
     const skip = (page - 1) * limit;
 
+    // Online-only filter (Users Management "users online now" click):
+    // same 2-minute heartbeat rule as /online, so the main list below
+    // shows exactly the online users, with full rows + pagination.
+    const onlineOnly = req.query.online === "true";
+    const filter = onlineOnly ? { lastSeenAt: { $gte: new Date(Date.now() - 2 * 60 * 1000) } } : {};
+
     // Fetch users with pagination
-    const users = await User.find()
+    const users = await User.find(filter)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
-    const total = await User.countDocuments();
+    const total = await User.countDocuments(filter);
 
     const usersWithExtras = await Promise.all(
       users.map(async (user) => {
