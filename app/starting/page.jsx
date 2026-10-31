@@ -11,11 +11,13 @@ import { useUsersContext } from "../AllContext/UsersContext"
 import Optimization from "./Optimization/Index"
 import Bottom from "@/app/Common/Bottom/Bottom"
 import SupportChat from '@/app/Common/SupportChat/SupportChat'
+import NotificationPopup from "@/app/Common/Notifications/NotificationPopup"
 import { fetchAdminSettings, DEFAULT_SETTINGS, workingHoursText } from "@/lib/admin-settings"
 
 export default function StartingPage() {
   const router = useRouter()
-  const { user } = useUsersContext()
+  const { user, setUser } = useUsersContext()
+  const [popupNotification, setPopupNotification] = useState(null)
 
   const [userDetails, setUserDetails] = useState(null)
   const [walletBalance, setWalletBalance] = useState(0)
@@ -23,6 +25,43 @@ export default function StartingPage() {
   const [profilePhotoLink, setProfilePhotoLink] = useState("")
   const [showResetDialog, setShowResetDialog] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
+
+  // Unread = backend read flag. The bell dot shows ONLY when this is > 0.
+  const unreadCount = (user?.notifications || []).filter((n) => !n.read).length
+
+  const markNotificationsRead = () => {
+    if (!user || unreadCount === 0) return
+    const updated = { ...user, notifications: (user.notifications || []).map((n) => ({ ...n, read: true })) }
+    setUser(updated)
+    try { localStorage.setItem("user", JSON.stringify(updated)) } catch (e) {}
+    fetch(`https://platform-axon-rust.vercel.app/api/users/markNotificationsRead/${user._id}`, { method: "POST" }).catch(() => {})
+  }
+
+  const handleBellClick = () => {
+    const opening = !showNotifications
+    setShowNotifications(opening)
+    if (opening) {
+      setPopupNotification(null)
+      markNotificationsRead()
+    }
+  }
+
+  // First-time popup: newest unread notification never shown before.
+  // Shared "shown" list with Home, so it pops only once across pages.
+  // Dismissing is NOT reading; only opening the dropdown clears the dot.
+  useEffect(() => {
+    if (!user?.notifications?.length || showNotifications || popupNotification) return
+    try {
+      const shown = new Set(JSON.parse(localStorage.getItem("axon-shown-notification-ids") || "[]"))
+      const fresh = [...user.notifications].reverse().find((n) => !n.read && !shown.has(n._id || `${n.message}-${n.createdAt}`))
+      if (!fresh) return
+      const key = fresh._id || `${fresh.message}-${fresh.createdAt}`
+      shown.add(key)
+      localStorage.setItem("axon-shown-notification-ids", JSON.stringify([...shown]))
+      const timer = setTimeout(() => setPopupNotification(fresh), 600)
+      return () => clearTimeout(timer)
+    } catch (e) { /* ignore */ }
+  }, [user, showNotifications, popupNotification])
   const [workingHours, setWorkingHours] = useState(DEFAULT_SETTINGS.workingHours)
   useEffect(() => { fetchAdminSettings().then((s) => setWorkingHours(s.workingHours || DEFAULT_SETTINGS.workingHours)) }, [])
 
@@ -109,11 +148,14 @@ export default function StartingPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setShowNotifications(!showNotifications)}
+                onClick={handleBellClick}
+                title={unreadCount > 0 ? `${unreadCount} unread notification${unreadCount > 1 ? "s" : ""}` : "Notifications"}
                 className="relative text-white hover:text-[#a3d65c] transition-colors rounded-xl hover:bg-[#3d4f3f]"
               >
                 <LucideIcons.Bell className="h-6 w-6" />
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-[#a3d65c] to-[#b8e986] rounded-full animate-pulse"></div>
+                {unreadCount > 0 && (
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-[#a3d65c] to-[#b8e986] rounded-full animate-pulse"></div>
+                )}
               </Button>
 
 
@@ -151,11 +193,14 @@ export default function StartingPage() {
               {/* 🔽 Notification Dropdown */}
               {showNotifications && (
                 <Card className="absolute top-full right-0 mt-3 w-80 bg-[#3d4e3f]/95 backdrop-blur-xl border border-[#4d5e4f] shadow-2xl rounded-2xl z-50 overflow-hidden">
-                  <div className="bg-lime-500 p-4">
+                  <div className="bg-lime-500 p-4 flex items-center justify-between">
                     <h3 className="text-lg font-bold text-[#2d3e2f] flex items-center gap-2">
                       <LucideIcons.Bell className="h-5 w-5" />
                       Notifications
                     </h3>
+                    <span className="text-xs font-bold text-[#2d3e2f]/70">
+                      {unreadCount > 0 ? `${unreadCount} unread` : "All read"}
+                    </span>
                   </div>
                   <div className="p-4">
                     {user.notifications.length > 0 ? (
@@ -187,10 +232,13 @@ export default function StartingPage() {
 
                           return (
                             <li
-                              key={index}
+                              key={notification._id || index}
                               className={`text-sm p-3 rounded-xl ${bgColor} border hover:bg-[#2d3e2f] transition-all duration-200 ${textColor}`}
                             >
-                              <p>{notification.message}</p>
+                              <p className="flex items-start gap-2">
+                                {!notification.read && <span className="mt-1.5 w-2 h-2 bg-lime-400 rounded-full shrink-0" title="Unread" />}
+                                <span className={!notification.read ? "font-semibold text-white" : ""}>{notification.message}</span>
+                              </p>
                               <p className="text-xs opacity-50 mt-1">
                                 {new Date(notification.createdAt).toLocaleString()}
                               </p>
@@ -395,6 +443,14 @@ export default function StartingPage() {
 
         <Bottom />
       </div>
+      {popupNotification && !showNotifications && (
+        <NotificationPopup
+          notification={popupNotification}
+          unreadCount={unreadCount}
+          onView={handleBellClick}
+          onDismiss={() => setPopupNotification(null)}
+        />
+      )}
     </>
   )
 }

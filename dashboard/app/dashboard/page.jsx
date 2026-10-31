@@ -20,6 +20,9 @@ import { useChatContext } from "@/app/AllContext/ChatContext"
 function DashboardContent() {
   const { activeTab, setActiveTab } = useDashboard()
   const [showLogout, setShowLogout] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  useEffect(() => { try { if (localStorage.getItem("axon-sidebar-collapsed") === "1") setSidebarCollapsed(true) } catch (e) {} }, [])
+  useEffect(() => { try { localStorage.setItem("axon-sidebar-collapsed", sidebarCollapsed ? "1" : "0") } catch (e) {} }, [sidebarCollapsed])
   const [brandName, setBrandName] = useState(DEFAULT_SETTINGS.brandName)
   const router = useRouter()
   useEffect(() => {
@@ -111,6 +114,16 @@ function DashboardContent() {
       {/* Header */}
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-slate-900/80 border-b border-slate-800/50 shadow-lg">
         <div className="flex items-center justify-between p-4 md:p-6">
+          <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSidebarCollapsed((v) => !v)}
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className="hidden md:flex text-slate-300 hover:text-white transition-colors rounded-xl hover:bg-slate-800/60"
+          >
+            {sidebarCollapsed ? <LucideIcons.ChevronsRight className="h-5 w-5" /> : <LucideIcons.ChevronsLeft className="h-5 w-5" />}
+          </Button>
           <Link href="/dashboard" className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
               <LucideIcons.LayoutDashboard className="h-6 w-6 text-white" />
@@ -119,6 +132,7 @@ function DashboardContent() {
               {brandName} Admin Dashboard
             </h1>
           </Link>
+          </div>
 
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800/60 border border-slate-700/50">
@@ -169,8 +183,19 @@ function DashboardContent() {
       {/* Main Content */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Sidebar */}
-        <aside className="hidden md:flex flex-col w-64 shrink-0 self-stretch bg-slate-900/60 backdrop-blur-xl border-r border-slate-800/50 shadow-lg overflow-y-auto">
-          <nav className="p-6 space-y-3">
+        <aside className={`hidden md:flex flex-col ${sidebarCollapsed ? "w-20" : "w-64"} shrink-0 self-stretch bg-slate-900/60 backdrop-blur-xl border-r border-slate-800/50 shadow-lg overflow-y-auto transition-all duration-300`}>
+          <div className="p-3 flex justify-end">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarCollapsed((v) => !v)}
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className="text-slate-300 hover:text-white transition-colors rounded-xl hover:bg-slate-800/60"
+            >
+              {sidebarCollapsed ? <LucideIcons.ChevronsRight className="h-5 w-5" /> : <LucideIcons.ChevronsLeft className="h-5 w-5" />}
+            </Button>
+          </div>
+          <nav className={`${sidebarCollapsed ? "p-3" : "p-6"} pt-0 space-y-3`}>
             {sidebarItems.map((item) => {
               const IconComponent = LucideIcons[item.icon]
               const isActive = activeTab === item.id
@@ -178,15 +203,18 @@ function DashboardContent() {
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 relative ${isActive
+                  title={item.label}
+                  className={`w-full flex items-center ${sidebarCollapsed ? "justify-center px-2" : "gap-3 px-4"} py-3 rounded-xl transition-all duration-300 relative ${isActive
                     ? `bg-gradient-to-r ${item.color} text-white shadow-lg transform scale-105`
                     : "text-slate-300 hover:bg-slate-800/60 hover:text-slate-100"
                     }`}
                 >
-                  {IconComponent && <IconComponent className="h-5 w-5" />}
-                  <span className="font-semibold">{item.label}</span>
+                  {IconComponent && <IconComponent className="h-5 w-5 shrink-0" />}
+                  {!sidebarCollapsed && <span className="font-semibold">{item.label}</span>}
                   {item.badge && item.badge > 0 && (
-                    <Badge className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5">{item.badge}</Badge>
+                    sidebarCollapsed
+                      ? <span className="absolute top-1 right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-slate-900" title={`${item.badge} new`} />
+                      : <Badge className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5">{item.badge}</Badge>
                   )}
                 </button>
               )
