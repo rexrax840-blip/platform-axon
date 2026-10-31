@@ -159,7 +159,7 @@ const Index = ({ user, setShowTaskSubmissionDialog, setTask, starting, setStarti
                 <div>
                   <h2 className="text-2xl lg:text-3xl font-bold text-white tracking-tight">Product Optimization</h2>
                   <p className="text-xs lg:text-sm text-gray-300 mt-1">
-                    Optimize your products and complete activities to earn rewards
+                    Optimize your products and complete tasks to earn rewards
                   </p>
                 </div>
               </div>
@@ -191,7 +191,6 @@ const Index = ({ user, setShowTaskSubmissionDialog, setTask, starting, setStarti
               </div>
               <div className="mt-4 flex items-center gap-6 text-sm">
                 <span className="text-gray-300">Sets Completed Today: <span className="font-bold text-[#a3d65c]">{completedSets.today}</span></span>
-                <span className="text-gray-300">Total Sets Completed: <span className="font-bold text-[#a3d65c]">{completedSets.total}</span></span>
               </div>
             </div>
 

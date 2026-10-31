@@ -28,7 +28,13 @@ export default function UsersManagement() {
   }
   const { transactions, fetchTasksByUser, getCompletedSetsSummary } = useUsersContext()
   const [setsSummary, setSetsSummary] = useState({})
-  useEffect(() => { getCompletedSetsSummary().then((r) => { if (r.success) setSetsSummary(r.summary) }) }, [])
+  const refreshSetsSummary = () => { getCompletedSetsSummary().then((r) => { if (r.success) setSetsSummary(r.summary) }) }
+  // Stale-summary fix: the old code fetched the summary only once on
+  // mount, so a set completed/reset after the admin opened this tab
+  // still showed 0 until a full page reload. Now it refetches whenever
+  // the users list reloads, every 30 seconds, and on Refresh.
+  useEffect(() => { refreshSetsSummary() }, [users])
+  useEffect(() => { const id = setInterval(refreshSetsSummary, 30000); return () => clearInterval(id) }, [])
   const { toast } = useToast()
 
   const [showForm, setShowForm] = useState(false)
@@ -234,7 +240,7 @@ export default function UsersManagement() {
 
         <Button
           variant="outline"
-          onClick={() => refreshUsers(currentPage, searchTerm.trim())}
+          onClick={() => { refreshUsers(currentPage, searchTerm.trim()); refreshSetsSummary() }}
           title="Refresh users list"
           className="rounded-xl bg-slate-900/40 text-slate-300 border-slate-700 px-4 py-6"
         >
@@ -449,7 +455,7 @@ export default function UsersManagement() {
                               </div>
 
                               <div className="text-sm text-slate-400">
-                                Sets Completed: Today {setsSummary[String(user._id)]?.today || 0} • Total {setsSummary[String(user._id)]?.total || 0}
+                                Sets Completed Today: {setsSummary[String(user._id)]?.today || 0}
                               </div>
                               <div className="text-sm text-slate-400">
                                 Referral: {user.ReferralName || "N/A"}

@@ -1140,6 +1140,22 @@ router.post("/requestLocationRefresh/:id", async (req, res) => {
   }
 });
 
+// Mark all notifications as read (header bell dot clears only when read).
+// Called when the user opens the notifications dropdown.
+router.post("/markNotificationsRead/:id", async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    let changed = false;
+    (user.notifications || []).forEach((n) => { if (!n.read) { n.read = true; changed = true; } });
+    if (changed) await user.save();
+    res.json({ ok: true, unreadCount: 0, user });
+  } catch (error) {
+    console.error("Mark notifications read error:", error);
+    res.status(500).json({ error: "Failed to mark notifications as read" });
+  }
+});
+
 router.get("/online", async (req, res) => {
   try {
     const since = new Date(Date.now() - 2 * 60 * 1000);

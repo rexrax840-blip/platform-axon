@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -18,6 +17,13 @@ export default function RecordsPage() {
   const [taskRecords, setTaskRecords] = useState([])
   const [totalTasks, setTotalTasks] = useState(0)
   const { user, fetchTasks, getCombos } = useUsersContext()
+  const [profilePhotoLink, setProfilePhotoLink] = useState("")
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("user") || "{}")
+      if (stored.profile?.photoLink) setProfilePhotoLink(stored.profile.photoLink)
+    } catch (e) {}
+  }, [])
 
   const notifications = [
     "🎉 Important update regarding service changes. Please check your inbox for details.",
@@ -259,9 +265,14 @@ export default function RecordsPage() {
           <div className="flex items-center gap-3 relative">
             <Link
               href="/profile"
-              className="text-gray-300 hover:text-[#a3d65c] transition-colors rounded-xl hover:bg-[#3a4d3c] p-2"
+              className="text-gray-300 hover:text-[#a3d65c] transition-colors rounded-xl hover:bg-[#3a4d3c] p-1"
+              title="Profile"
             >
-              <LucideIcons.UserCircle className="h-6 w-6" />
+              {(profilePhotoLink || (user.profile?.photoLink && user.profile.photoLink !== "none" ? user.profile.photoLink : "") || (user.profileimage && user.profileimage !== "none" ? user.profileimage : "")) ? (
+                <img src={profilePhotoLink || user.profile?.photoLink || user.profileimage} alt={user.username} className="w-8 h-8 rounded-full object-cover border border-[#a3d65c]/50" />
+              ) : (
+                <LucideIcons.UserCircle className="h-6 w-6" />
+              )}
             </Link>
           </div>
         </div>
@@ -344,34 +355,30 @@ export default function RecordsPage() {
                 />
               </div>
               <div className="flex gap-2">
-                <Button
-                  variant={filterStatus === "all" ? "default" : "outline"}
+                <button
                   onClick={() => setFilterStatus("all")}
-                  className={`rounded-xl ${filterStatus === "all" ? "bg-[#a3d65c] text-[#1a2617] hover:bg-[#8bc34a]" : "border-[#4a5d4c] text-gray-300 hover:bg-[#2d3e2f] hover:text-[#a3d65c]"}`}
+                  className={`px-4 py-2 rounded-xl font-semibold transition-colors ${filterStatus === "all" ? "bg-[#a3d65c] text-[#1a2617] hover:bg-[#8bc34a]" : "bg-[#2d3e2f] border border-[#4a5d4c] text-slate-200 hover:bg-[#3a4d3c] hover:text-[#a3d65c]"}`}
                 >
                   All
-                </Button>
-                <Button
-                  variant={filterStatus === "completed" ? "default" : "outline"}
+                </button>
+                <button
                   onClick={() => setFilterStatus("completed")}
-                  className={`rounded-xl ${filterStatus === "completed" ? "bg-[#a3d65c] text-[#1a2617] hover:bg-[#8bc34a]" : "border-[#4a5d4c] text-gray-300 hover:bg-[#2d3e2f] hover:text-[#a3d65c]"}`}
+                  className={`px-4 py-2 rounded-xl font-semibold transition-colors ${filterStatus === "completed" ? "bg-[#a3d65c] text-[#1a2617] hover:bg-[#8bc34a]" : "bg-[#2d3e2f] border border-[#4a5d4c] text-slate-200 hover:bg-[#3a4d3c] hover:text-[#a3d65c]"}`}
                 >
                   Completed
-                </Button>
-                <Button
-                  variant={filterStatus === "processing" ? "default" : "outline"}
+                </button>
+                <button
                   onClick={() => setFilterStatus("processing")}
-                  className={`rounded-xl ${filterStatus === "processing" ? "bg-[#a3d65c] text-[#1a2617] hover:bg-[#8bc34a]" : "border-[#4a5d4c] text-gray-300 hover:bg-[#2d3e2f] hover:text-[#a3d65c]"}`}
+                  className={`px-4 py-2 rounded-xl font-semibold transition-colors ${filterStatus === "processing" ? "bg-[#a3d65c] text-[#1a2617] hover:bg-[#8bc34a]" : "bg-[#2d3e2f] border border-[#4a5d4c] text-slate-200 hover:bg-[#3a4d3c] hover:text-[#a3d65c]"}`}
                 >
                   Processing
-                </Button>
-                <Button
-                  variant={filterStatus === "failed" ? "default" : "outline"}
+                </button>
+                <button
                   onClick={() => setFilterStatus("failed")}
-                  className={`rounded-xl ${filterStatus === "failed" ? "bg-[#a3d65c] text-[#1a2617] hover:bg-[#8bc34a]" : "border-[#4a5d4c] text-gray-300 hover:bg-[#2d3e2f] hover:text-[#a3d65c]"}`}
+                  className={`px-4 py-2 rounded-xl font-semibold transition-colors ${filterStatus === "failed" ? "bg-[#a3d65c] text-[#1a2617] hover:bg-[#8bc34a]" : "bg-[#2d3e2f] border border-[#4a5d4c] text-slate-200 hover:bg-[#3a4d3c] hover:text-[#a3d65c]"}`}
                 >
                   Failed
-                </Button>
+                </button>
               </div>
             </div>
 

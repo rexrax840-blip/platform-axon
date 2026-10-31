@@ -458,7 +458,7 @@ export default function AssignCombo({ userId, onClose, userDetails }) {
                     )}
                   </div>
 
-                  <p className="text-sm text-slate-300">Sets Completed Today: <span className="font-bold text-white">{completedSets.today}</span> &nbsp;•&nbsp; Total Sets Completed: <span className="font-bold text-white">{completedSets.total}</span></p>
+                  <p className="text-sm text-slate-300">Sets Completed Today: <span className="font-bold text-white">{completedSets.today}</span></p>
                   <Button
                     onClick={handleRefreshToday}
                     disabled={refreshingToday}
