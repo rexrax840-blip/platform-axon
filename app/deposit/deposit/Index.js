@@ -11,6 +11,7 @@ import { fetchAdminSettings } from "@/lib/admin-settings"
 const Index = () => {
   const { getWallets } = useUsersContext()
   const [wallets, setWallets] = useState([])
+  const [brandName, setBrandName] = useState("Axon")
 
   useEffect(() => {
     const fetchData = async () => {
@@ -19,6 +20,7 @@ const Index = () => {
       // alongside the existing deposit wallets; duplicates by address
       // are removed. If neither source has any, an empty state is shown.
       const settings = await fetchAdminSettings()
+      setBrandName(settings.brandName || "Axon")
       const adminAddresses = (settings.depositAddresses || [])
         .filter((a) => a.visible !== false && a.walletAddress)
         .map((a, i) => ({ _id: `admin-${i}`, walletName: a.walletName || a.label || "Crypto", walletAddress: a.walletAddress }))
@@ -123,7 +125,7 @@ const Index = () => {
                       <div className="flex gap-2 sm:gap-3">
                         <LucideIcons.AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 mt-0.5 text-[#a3d65c]" />
                         <p className="text-xs sm:text-sm text-gray-300">
-                          Send funds to the address above. After sending, please contact Nexxen support with the receipt
+                          Send funds to the address above. After sending, please contact {brandName} support with the receipt
                           & username for verification.
                         </p>
                       </div>

@@ -8,7 +8,6 @@ import Image from "next/image"
 import { useUsersContext } from "@/app/AllContext/UsersContext"
 import { Dialog } from "@/components/ui/dialog"
 import CS from "@/app/Common/CustomerService/CS"
-import SupportChat from '@/app/Common/SupportChat/SupportChat'
 import { fetchAdminSettings, DEFAULT_SETTINGS } from "@/lib/admin-settings"
 
 const Index = ({ user, setShowTaskSubmissionDialog, setTask, starting, setStarting, tasksState, setTasksState }) => {
@@ -146,7 +145,6 @@ const Index = ({ user, setShowTaskSubmissionDialog, setTask, starting, setStarti
 
   return (
     <>
-      <SupportChat userId={user._id} username={user.username} />
       <div className="w-full">
         <Card className="relative p-4 lg:p-6 bg-[#3d4f3f] shadow-2xl border border-[#a3d65c]/30 rounded-3xl overflow-hidden backdrop-blur-xl">
           <div className="absolute inset-0 bg-gradient-to-br from-[#a3d65c]/5 to-transparent"></div>
@@ -161,7 +159,7 @@ const Index = ({ user, setShowTaskSubmissionDialog, setTask, starting, setStarti
                 <div>
                   <h2 className="text-2xl lg:text-3xl font-bold text-white tracking-tight">Product Optimization</h2>
                   <p className="text-xs lg:text-sm text-gray-300 mt-1">
-                    Optimize your products and complete tasks to earn rewards
+                    Optimize your products and complete activities to earn rewards
                   </p>
                 </div>
               </div>

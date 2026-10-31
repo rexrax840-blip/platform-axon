@@ -48,7 +48,13 @@ export function LiveSupportProvider({ children }) {
 
           case "new_message":
             setMessages((prev) => [...prev, data.payload])
-            if (data.payload.sender === "support" && isChatOpen) {
+            // Auto-open: when admin (support) sends a live message, open
+            // the chat window automatically, on whichever page the user
+            // is on. Setting true when already open is a no-op. This is
+            // only for live new_message events, not for history loaded
+            // on page load, so old unread messages do not pop open.
+            if (data.payload.sender === "support") {
+              setIsChatOpen(true)
               setTimeout(() => {
                 markMessagesAsRead([data.payload.id])
               }, 1000)

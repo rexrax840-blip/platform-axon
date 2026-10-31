@@ -29,7 +29,7 @@ export default function TermsAndConditionsPage() {
       content: [
         {
           number: "1.1",
-          text: "In order to start the optimization of the application, a deposit of more than 100 USDT is required.",
+          text: "Account authorization is compulsory for every new specialists for the first time. $25 is the deposit required that works for life time.",
         },
         {
           number: "1.2",
@@ -107,7 +107,7 @@ export default function TermsAndConditionsPage() {
         },
         {
           number: "4.4",
-          text: "Confidentiality agreement between the user and the enterprise. The task completed on this platform is to obtain real-time real user data. The user needs to ensure the confidentiality of the task content and the platform.",
+          text: "Confidentiality agreement between the user and the enterprise. The activity completed on this platform is to obtain real-time real user data. The user needs to ensure the confidentiality of the activity content and the platform.",
         },
       ],
     },
@@ -167,7 +167,7 @@ export default function TermsAndConditionsPage() {
         },
         {
           number: "6.6",
-          text: "Each product maintenance task is required to be completed by the user within 8 hours. If the task is not completed on time and the user fails to notify the merchant of the extension time, resulting in complaints from the merchant, the user shall bear the liability for breach of contract.",
+          text: "Each product maintenance activity is required to be completed by the user within 8 hours. If the activity is not completed on time and the user fails to notify the merchant of the extension time, resulting in complaints from the merchant, the user shall bear the liability for breach of contract.",
         },
         {
           number: "6.7",
@@ -211,7 +211,7 @@ export default function TermsAndConditionsPage() {
       content: [
         {
           number: "8.1",
-          text: "Different products will be updated to the platform every minute. If a product is occupied for a long time without promotion, the application data will not be uploaded to the system, thus affecting the data upload progress. In order to maintain the reputation of the merchant, users need to complete the task within 24 hours. If the task is not completed within the deadline, the merchant will file a complaint and the order will be frozen!",
+          text: "Different products will be updated to the platform every minute. If a product is occupied for a long time without promotion, the application data will not be uploaded to the system, thus affecting the data upload progress. In order to maintain the reputation of the merchant, users need to complete the activity within 24 hours. If the activity is not completed within the deadline, the merchant will file a complaint and the order will be frozen!",
         },
         {
           number: "8.2",
@@ -229,11 +229,11 @@ export default function TermsAndConditionsPage() {
       content: [
         {
           number: "9.1",
-          text: "Platform business hours are from 9:30 to 21:30.",
+          text: "Platform is available from 11:00 AM to 11:00 PM EST.",
         },
         {
           number: "9.2",
-          text: "The working hours of the online customer service center are from 9:30 to 21:30.",
+          text: "The online customer service center is available from 11:00 AM to 11:00 PM EST.",
         },
       ],
     },
@@ -273,15 +273,12 @@ export default function TermsAndConditionsPage() {
           {/* Enhanced Terms Sections */}
           <div className="space-y-6 sm:space-y-8">
             {sections.map((section) => {
-              // Business Hours follows Admin Settings: when the restriction
-              // is OFF, terms must say 24 hours, not 9:30-21:30.
+              // Business Hours is fixed to 11 AM - 11 PM EST here, NOT
+              // driven by Admin Settings working hours, per admin instruction.
               if (section.title === "Business Hours") {
-                section = { ...section, content: workingHours?.enabled ? [
-                  { number: "9.1", text: `Platform business hours are from ${workingHours.startLabel} to ${workingHours.endLabel}.` },
-                  { number: "9.2", text: `The working hours of the online customer service center are from ${workingHours.startLabel} to ${workingHours.endLabel}.` },
-                ] : [
-                  { number: "9.1", text: "Platform is available 24 hours." },
-                  { number: "9.2", text: "The online customer service center is available 24 hours." },
+                section = { ...section, content: [
+                  { number: "9.1", text: "Platform is available from 11:00 AM to 11:00 PM EST." },
+                  { number: "9.2", text: "The online customer service center is available from 11:00 AM to 11:00 PM EST." },
                 ] }
               }
               const Icon = section.icon

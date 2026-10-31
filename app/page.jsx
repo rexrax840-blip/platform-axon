@@ -91,7 +91,6 @@ export default function HomePage() {
 
   return (
     <>
-      <SupportChat userId={storedUser._id} username={storedUser.username} />
       <div className="flex flex-col min-h-screen bg-[#2d3e2f]">
         {/* Header */}
         <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#2d3e2f]/95 border-b border-[#3d4e3f] shadow-lg">
@@ -119,6 +118,7 @@ export default function HomePage() {
               <SupportChat
                 userId={storedUser._id}
                 username={storedUser.username}
+                renderPanel={false}
                 renderTrigger={({ unseenCount, openChat }) => (
                   <button
                     onClick={openChat}

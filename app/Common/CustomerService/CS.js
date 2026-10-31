@@ -81,9 +81,10 @@ export default function CS({ message = "How can we help you today? Choose your p
       <div className="pt-4 border-t border-[#3d4f3f]">
         <p className="text-sm text-gray-400 text-center">
           <LucideIcons.Clock className="h-4 w-4 inline mr-1" />
-          {settings.workingHours?.enabled
-            ? `Available from ${settings.workingHours.startLabel} to ${settings.workingHours.endLabel} Eastern Time for your support.`
-            : "Available 24 hours for your support."}
+          {/* Fixed support hours for this dialog only: NOT driven by
+              Admin Settings working hours, per admin instruction. Other
+              places that use working hours remain dynamic. */}
+          Available from 11:00 AM to 11:00 PM EST for your support.
         </p>
       </div>
     </DialogContent>
