@@ -56,7 +56,9 @@ export default function UsersManagement() {
   const [showTransactionsModal, setShowTransactionsModal] = useState(false)
 
   const [showRewardModal, setShowRewardModal] = useState(false)
-  const [showOnlineList, setShowOnlineList] = useState(false)
+  // Online filter: clicking "users online now" filters the MAIN list below
+  // to online users only (no separate section). Toggle again to go back.
+  const [showOnlineOnly, setShowOnlineOnly] = useState(false)
   const [locationRefreshMsg, setLocationRefreshMsg] = useState("")
   const onlineIds = new Set((onlineUsers || []).map((u) => String(u._id)))
   const formatLocationUpdated = (loc) => {
@@ -83,7 +85,10 @@ export default function UsersManagement() {
 
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
-      if (searchTerm.trim() === "") {
+      if (showOnlineOnly) {
+        // Online-only: backend /users?online=true, full rows, paginated.
+        fetchUsers(currentPage, { online: true })
+      } else if (searchTerm.trim() === "") {
         // Req 1: load the latest accounts by default, 20 per page
         // (backend /users sorts by createdAt desc, limit 20).
         fetchUsers(currentPage)
@@ -93,7 +98,15 @@ export default function UsersManagement() {
     }, 500)
 
     return () => clearTimeout(delayDebounce)
-  }, [searchTerm, currentPage])
+  }, [searchTerm, currentPage, showOnlineOnly])
+
+  // Keep the online-only list live: when the online set changes (30s poll),
+  // refetch the current online page so users who went offline disappear
+  // and newly online users appear, without leaving the filter.
+  useEffect(() => {
+    if (showOnlineOnly) fetchUsers(currentPage, { online: true, force: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onlineUsers])
 
   const handleRefreshTasks = async (userId) => {
     setRefreshingTasks((prev) => ({ ...prev, [userId]: true }))
@@ -197,50 +210,20 @@ export default function UsersManagement() {
           </h2>
           <p className="text-slate-400 mt-2">Manage and control all user accounts</p>
           {realtimeEnabled ? (
-            <button onClick={() => setShowOnlineList((v) => !v)} className="text-sm mt-2 flex items-center gap-2 hover:underline" title="Click to show/hide the online users list below">
+            <button onClick={() => { const next = !showOnlineOnly; setShowOnlineOnly(next); if (next) { setSearchTerm(""); setCurrentPage(1) } }} className="text-sm mt-2 flex items-center gap-2 hover:underline" title={showOnlineOnly ? "Click to show all users again" : "Click to show only online users in the list below"}>
               <span className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse" />
               <span className="text-green-400 font-semibold">{onlineCount} users online now</span>
-              <span className="text-slate-400">{showOnlineList ? "▲ Hide online list" : "▼ Show online list"}</span>
+              <span className="text-slate-400">{showOnlineOnly ? "▲ Show all users" : "▼ Show online users"}</span>
             </button>
           ) : (
             <p className="text-sm mt-2 text-slate-500">Realtime OFF — online count paused (turn it on in Admin Settings)</p>
           )}
           {locationRefreshMsg && <p className="text-sm mt-2 text-cyan-300">{locationRefreshMsg}</p>}
-          {showOnlineList && realtimeEnabled && (
-            <Card className="mt-4 p-4 bg-slate-800/40 border border-slate-700/50 rounded-2xl space-y-3">
-              <h3 className="font-bold text-slate-100">Online Users ({onlineCount})</h3>
-              {onlineUsers.length === 0 ? (
-                <p className="text-sm text-slate-400">No users are online right now.</p>
-              ) : (
-                <div className="space-y-2">
-                  {onlineUsers.map((u) => (
-                    <div key={u._id} className="flex items-center gap-3 p-2 rounded-xl bg-slate-900/40">
-                      <div className="relative shrink-0">
-                        {(u.profile?.photoLink || u.profileimage) && u.profile?.photoLink !== "none" && u.profileimage !== "none" ? (
-                          <img src={u.profile?.photoLink || u.profileimage} alt={u.username} className="w-9 h-9 rounded-full object-cover border border-slate-600" />
-                        ) : (
-                          <div className="w-9 h-9 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">{u.username?.charAt(0)}</div>
-                        )}
-                        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-slate-900" title="Online" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="font-semibold text-slate-200 truncate">{u.username}</div>
-                        <div className="text-xs text-slate-400 truncate">{u.currentPage || "—"} · {u.currentActivity || "Browsing"}</div>
-                      </div>
-                      <Button variant="ghost" size="sm" onClick={() => { setChatSelectedUser({ id: u._id, username: u.username }); setActiveTab("live-chat") }} className="text-cyan-400 hover:bg-cyan-900/20 rounded-lg" title="Message user in Live Chat">
-                        <LucideIcons.MessageCircle className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Card>
-          )}
         </div>
 
         <Button
           variant="outline"
-          onClick={() => { refreshUsers(currentPage, searchTerm.trim()); refreshSetsSummary() }}
+          onClick={() => { if (showOnlineOnly) refreshUsers(currentPage, "", { online: true }); else refreshUsers(currentPage, searchTerm.trim()); refreshSetsSummary() }}
           title="Refresh users list"
           className="rounded-xl bg-slate-900/40 text-slate-300 border-slate-700 px-4 py-6"
         >
@@ -269,6 +252,7 @@ export default function UsersManagement() {
             placeholder="Search by username or phone..."
             value={searchTerm}
             onChange={(e) => {
+              setShowOnlineOnly(false)
               setCurrentPage(1)
               setSearchTerm(e.target.value)
             }}
@@ -276,6 +260,17 @@ export default function UsersManagement() {
           />
         </div>
       </Card>
+
+      {showOnlineOnly && realtimeEnabled && (
+        <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-green-500/10 border border-green-500/40 rounded-2xl">
+          <p className="text-sm text-green-300 font-semibold">
+            Showing online users only ({onlineCount} online right now) — the list below is filtered, not the default 20 users.
+          </p>
+          <button onClick={() => setShowOnlineOnly(false)} className="text-sm font-semibold text-green-300 hover:text-green-200 hover:underline">
+            Show all users
+          </button>
+        </div>
+      )}
 
       <div className="bg-slate-800/40 backdrop-blur-sm rounded-2xl border border-slate-700/50 shadow-lg overflow-hidden">
         {isLoadingUsers ? (
@@ -520,7 +515,7 @@ export default function UsersManagement() {
                     ) : (
                       <tr>
                         <td colSpan="5" className="text-center py-10 text-slate-400 font-semibold">
-                          No users found
+                          {showOnlineOnly ? "No users are online right now." : "No users found"}
                         </td>
                       </tr>
                     )}

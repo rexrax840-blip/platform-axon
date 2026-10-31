@@ -267,12 +267,14 @@ export function DashboardProvider({ children }) {
     // Cache hit: this page was already loaded in this page-load, and the
     // list is still in context (live realtime updates keep it current).
     // Skip the network call entirely — no spinner, no reload.
-    if (!options.force && usersLoadedRef.current[`list:${page}`]) return;
+    // Online filter has its own cache key, so it never returns the all-users page.
+    const cacheKey = options.online ? `online:${page}` : `list:${page}`;
+    if (!options.force && usersLoadedRef.current[cacheKey]) return;
     try {
       setIsLoadingUsers(true);
 
       const response = await fetch(
-        `${host1online}api/users/users?page=${page}`
+        `${host1online}api/users/users?page=${page}${options.online ? "&online=true" : ""}`
       );
 
       if (!response.ok) {
@@ -286,7 +288,7 @@ export function DashboardProvider({ children }) {
       // Update state
       setUsers(result.users || []);
       setTotalUserPages(result.totalPages || 1);
-      usersLoadedRef.current[`list:${page}`] = true;
+      usersLoadedRef.current[cacheKey] = true;
 
       setIsLoadingUsers(false);
     } catch (error) {
@@ -397,7 +399,7 @@ export function DashboardProvider({ children }) {
     usersSearchTerm,
     setUsersSearchTerm,
     // Force a fresh fetch (used by the manual Refresh button).
-    refreshUsers: (page, query) => query ? searchUsers(query, page, { force: true }) : fetchUsers(page, { force: true }),
+    refreshUsers: (page, query, options = {}) => query ? searchUsers(query, page, { force: true }) : fetchUsers(page, { force: true, ...options }),
     totalUserPages,
     isLoadingUsers,
     searchUsers,
