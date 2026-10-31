@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { createPortal } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import * as LucideIcons from "lucide-react"
@@ -8,7 +9,9 @@ import { cn } from "@/lib/utils"
 import { useLiveSupportContext } from "@/app/AllContext/ChatContext"
 import { optimizeImage, validateImageFile, getBase64Size } from "@/lib/image-optimizer"
 
-export default function Chatting({ userId, username, renderTrigger }) {
+export default function Chatting({ userId, username, renderTrigger, renderPanel = true }) {
+    const [portalMounted, setPortalMounted] = useState(false)
+    useEffect(() => { setPortalMounted(true) }, [])
     const [replyingTo, setReplyingTo] = useState(null)
     const [hoveredMessageId, setHoveredMessageId] = useState(null)
     const [isDragging, setIsDragging] = useState(false)
@@ -360,7 +363,7 @@ export default function Chatting({ userId, username, renderTrigger }) {
                 openChat: () => setIsChatOpen(true)
             })}
 
-            {isChatOpen && (
+            {isChatOpen && renderPanel && portalMounted && createPortal((
                 <div className={`fixed inset-0 z-[9998] md:inset-auto md:bottom-6 md:right-6 md:w-[420px] ${isMinimized ? "md:h-auto" : "md:h-[620px] md:max-h-[85vh]"} flex md:block animate-in fade-in duration-200`}>
                     {/* Mobile backdrop: tap outside to close. Desktop: floating panel, page stays usable. */}
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm md:hidden" onClick={() => setIsChatOpen(false)} />
@@ -661,7 +664,7 @@ export default function Chatting({ userId, username, renderTrigger }) {
                                 </div>
                             )}
 
-                            <div className="flex flex-col sm:flex-row gap-2 w-full sm:items-end">
+                            <div className="flex flex-row gap-2 w-full items-end">
                                 {/* Hidden Inputs */}
                                 <input
                                     ref={imageInputRef}
@@ -679,7 +682,7 @@ export default function Chatting({ userId, username, renderTrigger }) {
                                 />
 
                                 {/* Upload Buttons */}
-                                <div className="flex gap-2 sm:flex-col">
+                                <div className="flex gap-2 shrink-0">
                                     <Button
                                         size="icon"
                                         variant="ghost"
@@ -745,10 +748,10 @@ export default function Chatting({ userId, username, renderTrigger }) {
                         )}
                     </Card>
                 </div>
-            )}
+            ), document.body)}
 
             {/* Lightbox for images */}
-            {lightboxImage && (
+            {lightboxImage && renderPanel && portalMounted && createPortal((
                 <div
                     className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4"
                     onClick={() => setLightboxImage(null)}
@@ -769,7 +772,7 @@ export default function Chatting({ userId, username, renderTrigger }) {
                         />
                     </div>
                 </div>
-            )}
+            ), document.body)}
 
             <style jsx global>{`
         @keyframes highlight {

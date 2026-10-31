@@ -275,7 +275,7 @@ export default function RecordsPage() {
             <div className="p-3 rounded-2xl bg-[#a3d65c]">
               <LucideIcons.ClipboardList className="h-6 w-6 text-[#1a2617]" />
             </div>
-            <h1 className="text-3xl font-bold text-white">Task Records</h1>
+            <h1 className="text-3xl font-bold text-white">Activity Records</h1>
           </div>
 
           {/* Statistics Cards */}
@@ -285,7 +285,7 @@ export default function RecordsPage() {
                 <div className="p-2 rounded-xl bg-[#a3d65c]">
                   <LucideIcons.Target className="h-4 w-4 text-[#1a2617]" />
                 </div>
-                <span className="text-sm font-medium text-gray-300">Total Tasks</span>
+                <span className="text-sm font-medium text-gray-300">Total Activities</span>
               </div>
               <p className="text-2xl font-bold text-[#a3d65c]">{totalTasks}</p>
             </Card>
@@ -337,7 +337,7 @@ export default function RecordsPage() {
               <div className="relative flex-1 max-w-md">
                 <LucideIcons.Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search by product name or task code..."
+                  placeholder="Search by product name or activity code..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 h-12 rounded-xl bg-[#2d3e2f] border-[#4a5d4c] text-white placeholder:text-gray-500 focus:border-[#a3d65c] focus:ring-[#a3d65c]"
@@ -378,7 +378,7 @@ export default function RecordsPage() {
             {/* Records List */}
             <div className="space-y-4">
               {loading ? (
-                <p className="text-center text-gray-400 py-6">Loading tasks...</p>
+                <p className="text-center text-gray-400 py-6">Loading activities...</p>
               ) : filteredRecords.length > 0 ? (
                 filteredRecords.map((record) => {
                   if (record.isCombo) {
@@ -394,7 +394,7 @@ export default function RecordsPage() {
                               <LucideIcons.Package className="h-5 w-5 text-[#1a2617]" />
                             </div>
                             <div>
-                              <h3 className="text-xl font-bold text-white">Combo Task Group</h3>
+                              <h3 className="text-xl font-bold text-white">Combo Activity Group</h3>
                               <p className="text-sm text-gray-400">{record.comboProducts.length} Products</p>
                             </div>
                           </div>
@@ -518,7 +518,7 @@ export default function RecordsPage() {
                   )
                 })
               ) : (
-                <p className="text-center text-gray-400 py-6">No tasks found matching your criteria.</p>
+                <p className="text-center text-gray-400 py-6">No activities found matching your criteria.</p>
               )}
             </div>
           </Card>

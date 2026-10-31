@@ -10,7 +10,6 @@ import { useUsersContext } from "../AllContext/UsersContext"
 import { useRouter } from "next/navigation"
 import Bottom from "@/app/Common/Bottom/Bottom"
 import CS from "@/app/Common/CustomerService/CS"
-import SupportChat from "@/app/Common/SupportChat/SupportChat"
 
 export default function ProfilePage() {
   const { logout } = useUsersContext()
@@ -163,7 +162,6 @@ export default function ProfilePage() {
 
   return (
     <>
-      <SupportChat userId={user.userId} username={user.name} />
       <div className="flex flex-col min-h-screen bg-[#2d3e2f]">
         <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#3a4d3c]/80 border-b border-[#a3d65c]/20 shadow-lg">
           <div className="flex items-center justify-between p-4">

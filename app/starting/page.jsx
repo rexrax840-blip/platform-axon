@@ -94,7 +94,6 @@ export default function StartingPage() {
 
   return (
     <>
-    <SupportChat userId={user._id} username={user.username} />
       <div className="flex flex-col min-h-screen bg-gradient-to-br from-[#2d3e2f] via-[#3d4f3f] to-[#2d3e2f]">
         <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#2d3e2f]/95 border-b border-[#a3d65c]/20 shadow-lg">
           <div className="flex items-center justify-between p-4">
@@ -121,6 +120,7 @@ export default function StartingPage() {
               <SupportChat
                 userId={user._id}
                 username={user.username}
+                renderPanel={false}
                 renderTrigger={({ unseenCount, openChat }) => (
                   <button
                     onClick={openChat}
